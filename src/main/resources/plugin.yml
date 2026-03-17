@@ -1,0 +1,29 @@
+name: RustCore-Duels
+version: ${project.version}
+main: net.rustcore.duel.DuelsPlugin
+api-version: "1.21.4"
+description: Modular duel plugin with configurable modes, arenas, and stats
+authors: [ "Dev" ]
+depend:
+  - FastAsyncWorldEdit
+softdepend:
+  - ExecutableItems
+  - DeluxeMenus
+  - PlaceholderAPI
+
+commands:
+  duel:
+    description: Main duel command
+    usage: /<command> <subcommand>
+    aliases: [ duels ]
+
+permissions:
+  duels.admin:
+    description: Admin permission for duel management
+    default: op
+  duels.play:
+    description: Permission to play duels
+    default: true
+  duels.queue:
+    description: Permission to queue for duels
+    default: true

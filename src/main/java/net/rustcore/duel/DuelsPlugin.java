@@ -1,0 +1,137 @@
+package net.rustcore.duel;
+
+import net.rustcore.duel.arena.ArenaManager;
+import net.rustcore.duel.command.DuelCommand;
+import net.rustcore.duel.placeholder.DuelsExpansion;
+import net.rustcore.duel.duel.DuelManager;
+import net.rustcore.duel.listener.ArenaProtectionListener;
+import net.rustcore.duel.listener.DuelListener;
+import net.rustcore.duel.listener.KitMenuListener;
+import net.rustcore.duel.listener.LobbyListener;
+import net.rustcore.duel.lobby.LobbyManager;
+import net.rustcore.duel.mode.DuelMode;
+import net.rustcore.duel.mode.ModeManager;
+import net.rustcore.duel.stats.StatsManager;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
+
+public class DuelsPlugin extends JavaPlugin {
+
+    private ArenaManager arenaManager;
+    private ModeManager modeManager;
+    private DuelManager duelManager;
+    private StatsManager statsManager;
+    private LobbyManager lobbyManager;
+
+    @Override
+    public void onEnable() {
+        // Save default configs
+        saveDefaultConfig();
+        saveResourceIfMissing("modes/kitbuilder.yml");
+
+        // Create schematics folder
+        File schemFolder = new File(getDataFolder(),
+                getConfig().getString("arenas.schematics-folder", "schematics"));
+        if (!schemFolder.exists()) schemFolder.mkdirs();
+
+        // Initialize managers
+        arenaManager = new ArenaManager(this);
+        modeManager = new ModeManager(this);
+        duelManager = new DuelManager(this);
+        statsManager = new StatsManager(this);
+        lobbyManager = new LobbyManager(this);
+
+        // Load
+        arenaManager.load();
+        modeManager.load();
+        lobbyManager.load();
+
+        // Register stats for each mode
+        registerModeStats();
+
+        // Register listeners
+        getServer().getPluginManager().registerEvents(new DuelListener(this), this);
+        getServer().getPluginManager().registerEvents(new ArenaProtectionListener(this), this);
+        getServer().getPluginManager().registerEvents(new KitMenuListener(this), this);
+        getServer().getPluginManager().registerEvents(new LobbyListener(this), this);
+
+        // Register commands
+        DuelCommand duelCommand = new DuelCommand(this);
+        getCommand("duel").setExecutor(duelCommand);
+        getCommand("duel").setTabCompleter(duelCommand);
+
+        // Register BungeeCord plugin messaging channel
+        getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+
+        // Register PlaceholderAPI expansion if present
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new DuelsExpansion(this).register();
+            getLogger().info("PlaceholderAPI expansion registered.");
+        }
+
+        getLogger().info("Duels plugin enabled!");
+    }
+
+    @Override
+    public void onDisable() {
+        // Save all stats
+        if (statsManager != null) {
+            statsManager.saveAll();
+        }
+
+        // End all active duels gracefully
+        if (duelManager != null) {
+            for (var duel : duelManager.getActiveDuels()) {
+                duel.forceEnd(null);
+            }
+        }
+
+        getLogger().info("Duels plugin disabled!");
+    }
+
+    /**
+     * Register stats files for all loaded modes.
+     */
+    private void registerModeStats() {
+        for (DuelMode mode : modeManager.getAllModes()) {
+            // Load the mode's config to get stats settings
+            File modeConfigFile = new File(getDataFolder(), "modes/" + mode.getId() + ".yml");
+            if (modeConfigFile.exists()) {
+                YamlConfiguration modeConfig = YamlConfiguration.loadConfiguration(modeConfigFile);
+                String statsFile = modeConfig.getString("stats.file", "stats/" + mode.getId() + "_stats.yml");
+                int startingElo = modeConfig.getInt("stats.starting-elo", 1000);
+                int eloKFactor = modeConfig.getInt("stats.elo-k-factor", 32);
+                statsManager.registerMode(mode.getId(), statsFile, startingElo, eloKFactor);
+            } else {
+                statsManager.registerMode(mode.getId(), "stats/" + mode.getId() + "_stats.yml", 1000, 32);
+            }
+        }
+    }
+
+    /**
+     * Save a resource from the jar if it doesn't exist in the data folder.
+     */
+    private void saveResourceIfMissing(String resourcePath) {
+        File file = new File(getDataFolder(), resourcePath);
+        if (!file.exists()) {
+            file.getParentFile().mkdirs();
+            saveResource(resourcePath, false);
+        }
+    }
+
+    /**
+     * Get a message from config with the prefix.
+     */
+    public String getMessage(String key) {
+        return getConfig().getString("messages." + key, "<red>Missing message: " + key);
+    }
+
+    // Manager accessors
+    public ArenaManager getArenaManager() { return arenaManager; }
+    public ModeManager getModeManager() { return modeManager; }
+    public DuelManager getDuelManager() { return duelManager; }
+    public StatsManager getStatsManager() { return statsManager; }
+    public LobbyManager getLobbyManager() { return lobbyManager; }
+}

@@ -1,0 +1,176 @@
+# ============================================================
+# Duels Plugin - Main Configuration
+# ============================================================
+
+# General settings
+general:
+  # World where arenas are pasted and duels take place
+  arena-world: "duels_world"
+  # World where the lobby is
+  lobby-world: "lobby"
+  # Lobby spawn location (x, y, z, yaw, pitch)
+  lobby-spawn:
+    x: 0.5
+    y: 64.0
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+
+# ============================================================
+# Arena Settings
+# ============================================================
+arenas:
+  # Directory where .schem files are stored (relative to plugin folder)
+  schematics-folder: "schematics"
+  # Spacing between arena paste locations (in blocks) to avoid overlap
+  arena-spacing: 200
+  # Base paste coordinates in the arena world
+  paste-origin:
+    x: 1000
+    y: 80
+    z: 1000
+  # Global default spawn-point offsets (relative to the schematic paste origin).
+  # Used by any arena that does NOT define its own spawn-points section.
+  # Add multiple entries under team-a / team-b for random selection each round.
+  # At least one entry per team is required.
+  spawn-points:
+    team-a:
+      - x: 0.5
+        y: 64.0
+        z: -10.0
+        yaw: 0.0
+        pitch: 0.0
+    team-b:
+      - x: 0.5
+        y: 64.0
+        z: 10.0
+        yaw: 180.0
+        pitch: 0.0
+
+# List of arenas (each references a .schem file in the schematics folder)
+arena-list:
+  example_arena:
+    schematic: "example_arena.schematic"
+    display-name: "<gradient:#ff6b6b:#ffa500>Example Arena</gradient>"
+    # If true, this arena is available for matchmaking
+    enabled: true
+    # Per-arena spawn-point offsets (relative to schematic paste origin).
+    # Overrides the global arenas.spawn-points when present.
+    # Remove this section to fall back to the global defaults.
+    # You can list multiple offsets per team — one is chosen randomly each round.
+    spawn-points:
+      team-a:
+        - x: 0.5
+          y: 64.0
+          z: -10.0
+          yaw: 0.0
+          pitch: 0.0
+      team-b:
+        - x: 0.5
+          y: 64.0
+          z: 10.0
+          yaw: 180.0
+          pitch: 0.0
+
+# ============================================================
+# Lobby Hotbar Items
+# ============================================================
+# These items are given to players when they return to the lobby.
+# They are locked in place (cannot be moved/dropped).
+# Use them as triggers for DeluxeMenus or other menu plugins.
+lobby-items:
+  0:
+    material: DIAMOND_SWORD
+    name: "<green><bold>Queue for Duel"
+    lore:
+      - "<gray>Click to join the duel queue"
+    # Custom model data for resource pack support (optional)
+    custom-model-data: 0
+    # Action identifier used by listeners / DeluxeMenus
+    action: "open_queue_menu"
+  1:
+    material: BOOK
+    name: "<yellow><bold>Leaderboards"
+    lore:
+      - "<gray>View top players"
+    custom-model-data: 0
+    action: "open_leaderboard_menu"
+  2:
+    material: EMERALD
+    name: "<light_purple><bold>Cosmetics"
+    lore:
+      - "<gray>Coming soon!"
+    custom-model-data: 0
+    action: "open_cosmetics_menu"
+  4:
+    material: COMPASS
+    name: "<aqua><bold>Choose Hub"
+    lore:
+      - "<gray>Switch to another hub server"
+    custom-model-data: 0
+    action: "open_hub_menu"
+  6:
+    material: REDSTONE
+    name: "<gold><bold>Settings"
+    lore:
+      - "<gray>Customize your experience"
+    custom-model-data: 0
+    action: "open_settings_menu"
+  8:
+    material: RED_BED
+    name: "<red><bold>Quit to Lobby"
+    lore:
+      - "<gray>Return to the main lobby"
+    custom-model-data: 0
+    action: "quit_to_lobby"
+
+# ============================================================
+# Duel Settings
+# ============================================================
+duel:
+  # Countdown before a duel round starts (seconds)
+  countdown-seconds: 5
+  # Time after a round ends before the next round / teleport back (seconds)
+  round-end-delay: 3
+  # Maximum duel duration per round in seconds (0 = unlimited)
+  round-time-limit: 300
+  # Whether to show a scoreboard during the duel
+  show-scoreboard: true
+
+# ============================================================
+# Messages (MiniMessage format)
+# ============================================================
+messages:
+  prefix: "<dark_gray>[<gradient:#ff6b6b:#ffa500>Duels</gradient><dark_gray>] "
+  duel-request-sent: "<green>Duel request sent to <white><player><green>!"
+  duel-request-received: "<green><white><player><green> challenged you! Type <white>/duel accept<green> to accept."
+  duel-accepted: "<green>Duel accepted! Teleporting..."
+  duel-declined: "<red>Duel request declined."
+  duel-expired: "<red>Duel request expired."
+  round-start: "<yellow>Round <white><round><yellow> - FIGHT!"
+  round-win: "<green><player><yellow> won round <white><round><yellow>!"
+  duel-win: "<gold><bold><player><yellow> won the duel! <gray>(<white><wins><gray>-<white><losses><gray>)"
+  kit-select-title: "<dark_purple><bold>Select Your Kit Items"
+  kit-ready: "<green>Kit ready! Waiting for opponent..."
+  queue-joined: "<green>You joined the <white><mode><green> queue!"
+  queue-left: "<red>You left the queue."
+  no-arenas: "<red>No arenas available right now. Try again later."
+  already-in-duel: "<red>You are already in a duel!"
+  player-not-found: "<red>Player not found."
+  no-permission: "<red>You don't have permission to do that."
+  arena-reloaded: "<green>Arenas reloaded!"
+  config-reloaded: "<green>Configuration reloaded!"
+  round-draft: "<yellow>Round <white><round><yellow> - Draft your kit!"
+  round-draw: "<yellow>Round <white><round><yellow> was a draw!"
+  duel-draw: "<yellow>The duel ended in a draw!"
+  duel-timeout: "<red>Time's up! Round ends in a draw."
+  opponent-disconnected: "<yellow>Your opponent disconnected. You win!"
+  draft-timeout: "<yellow>Draft time expired! Your current kit has been locked in."
+  already-in-duel-target: "<red>That player is already in a duel!"
+  no-pending-request: "<red>No pending duel request."
+  invalid-mode: "<red>Invalid duel mode."
+  arena-prepare-failed: "<red>Failed to prepare arena. Please try again."
+  kit-menu-failed: "<red>Failed to open kit menu. Please report this to an admin."
+  only-players: "<red>Only players can use this command."
+  cant-duel-self: "<red>You can't duel yourself!"
+  bestof-must-be-odd: "<red>best-of must be an odd number (1, 3, 5...)."
