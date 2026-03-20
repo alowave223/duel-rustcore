@@ -86,8 +86,12 @@ lobby-items:
       - "<gray>Click to join the duel queue"
     # Custom model data for resource pack support (optional)
     custom-model-data: 0
-    # Action identifier used by listeners / DeluxeMenus
-    action: "open_queue_menu"
+    # Commands to execute when item is right-clicked.
+    # Types: player (run as player), console (run from console), message (send MiniMessage), bungee (transfer server)
+    # Use {player} placeholder in console commands for player name.
+    execute-on-use:
+      - type: player
+        command: "dm open queue_menu"
     # Bukkit ItemFlags to apply (e.g. HIDE_ATTRIBUTES, HIDE_ENCHANTS, HIDE_UNBREAKABLE)
     item-flags:
       - HIDE_ATTRIBUTES
@@ -99,7 +103,9 @@ lobby-items:
     lore:
       - "<gray>View top players"
     custom-model-data: 0
-    action: "open_leaderboard_menu"
+    execute-on-use:
+      - type: player
+        command: "dm open leaderboard_menu"
     item-flags:
       - HIDE_ATTRIBUTES
       - HIDE_UNBREAKABLE
@@ -110,7 +116,9 @@ lobby-items:
     lore:
       - "<gray>Coming soon!"
     custom-model-data: 0
-    action: "open_cosmetics_menu"
+    execute-on-use:
+      - type: message
+        command: "<gray>Cosmetics coming soon!"
     item-flags:
       - HIDE_ATTRIBUTES
       - HIDE_UNBREAKABLE
@@ -121,7 +129,9 @@ lobby-items:
     lore:
       - "<gray>Switch to another hub server"
     custom-model-data: 0
-    action: "open_hub_menu"
+    execute-on-use:
+      - type: player
+        command: "dm open hub_menu"
     item-flags:
       - HIDE_ATTRIBUTES
       - HIDE_UNBREAKABLE
@@ -132,7 +142,9 @@ lobby-items:
     lore:
       - "<gray>Customize your experience"
     custom-model-data: 0
-    action: "open_settings_menu"
+    execute-on-use:
+      - type: message
+        command: "<gray>Settings coming soon!"
     item-flags:
       - HIDE_ATTRIBUTES
       - HIDE_UNBREAKABLE
@@ -143,7 +155,9 @@ lobby-items:
     lore:
       - "<gray>Return to the main lobby"
     custom-model-data: 0
-    action: "quit_to_lobby"
+    execute-on-use:
+      - type: bungee
+        command: "lobby"
     item-flags:
       - HIDE_ATTRIBUTES
       - HIDE_UNBREAKABLE
