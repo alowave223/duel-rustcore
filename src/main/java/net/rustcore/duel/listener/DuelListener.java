@@ -8,16 +8,20 @@ import net.rustcore.duel.modification.Modification;
 import java.util.List;
 
 import org.bukkit.GameMode;
+import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.util.Vector;
+
 
 /**
  * Handles all gameplay events during active duels:
@@ -185,6 +189,40 @@ public class DuelListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGH)
+    public void onPearlThrow(ProjectileLaunchEvent event) {
+        if (event.getEntity() instanceof EnderPearl) {
+            if (event.getEntity().getShooter() instanceof Player) {
+                Player player = (Player) event.getEntity().getShooter();
+                Duel duel = plugin.getDuelManager().getDuel(player.getUniqueId());
+
+                if (duel == null)
+                    return;
+
+                DuelState state = duel.getState();
+
+                if (state != DuelState.ACTIVE) {
+                    event.setCancelled(true);
+                }
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPearlTeleport(PlayerTeleportEvent event) {
+        if (event.getCause() == PlayerTeleportEvent.TeleportCause.ENDER_PEARL) {
+            Duel duel = plugin.getDuelManager().getDuel(event.getPlayer().getUniqueId());
+            if (duel == null)
+                return;
+
+            DuelState state = duel.getState();
+
+            if (state != DuelState.ACTIVE) {
+                event.setCancelled(true);
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
     public void onTotemUse(EntityResurrectEvent event) {
         if (!(event.getEntity() instanceof Player player))
             return;
@@ -266,7 +304,7 @@ public class DuelListener implements Listener {
     }
 
     @EventHandler
-    public void onItemDrop(org.bukkit.event.player.PlayerDropItemEvent event) {
+    public void onItemDrop(PlayerDropItemEvent event) {
         Player player = event.getPlayer();
         Duel duel = plugin.getDuelManager().getDuel(player.getUniqueId());
         if (duel == null)

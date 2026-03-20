@@ -11,6 +11,7 @@ import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -62,12 +63,27 @@ public class LobbyManager {
             int cmd = itemSection.getInt("custom-model-data", 0);
             String action = itemSection.getString("action", "");
 
-            ItemStack item = new ItemBuilder(material)
+            // Parse item flags
+            List<String> flagNames = itemSection.getStringList("item-flags");
+            List<ItemFlag> flags = new ArrayList<>();
+            for (String flagName : flagNames) {
+                try {
+                    flags.add(ItemFlag.valueOf(flagName.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning("Unknown item flag '" + flagName
+                            + "' in lobby-items." + slotStr + " — skipping.");
+                }
+            }
+
+            ItemBuilder builder = new ItemBuilder(material)
                     .name(name)
                     .lore(lore)
                     .customModelData(cmd)
-                    .pdc(LOBBY_ITEM_KEY, action)
-                    .build();
+                    .pdc(LOBBY_ITEM_KEY, action);
+            if (!flags.isEmpty()) {
+                builder.flags(flags.toArray(new ItemFlag[0]));
+            }
+            ItemStack item = builder.build();
 
             lobbyItems.put(slot, new LobbyItem(item, action, slot));
         }

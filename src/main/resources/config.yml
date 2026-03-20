@@ -88,6 +88,11 @@ lobby-items:
     custom-model-data: 0
     # Action identifier used by listeners / DeluxeMenus
     action: "open_queue_menu"
+    # Bukkit ItemFlags to apply (e.g. HIDE_ATTRIBUTES, HIDE_ENCHANTS, HIDE_UNBREAKABLE)
+    item-flags:
+      - HIDE_ATTRIBUTES
+      - HIDE_UNBREAKABLE
+      - HIDE_ENCHANTS
   1:
     material: BOOK
     name: "<yellow><bold>Leaderboards"
@@ -95,6 +100,10 @@ lobby-items:
       - "<gray>View top players"
     custom-model-data: 0
     action: "open_leaderboard_menu"
+    item-flags:
+      - HIDE_ATTRIBUTES
+      - HIDE_UNBREAKABLE
+      - HIDE_ENCHANTS
   2:
     material: EMERALD
     name: "<light_purple><bold>Cosmetics"
@@ -102,6 +111,10 @@ lobby-items:
       - "<gray>Coming soon!"
     custom-model-data: 0
     action: "open_cosmetics_menu"
+    item-flags:
+      - HIDE_ATTRIBUTES
+      - HIDE_UNBREAKABLE
+      - HIDE_ENCHANTS
   4:
     material: COMPASS
     name: "<aqua><bold>Choose Hub"
@@ -109,6 +122,10 @@ lobby-items:
       - "<gray>Switch to another hub server"
     custom-model-data: 0
     action: "open_hub_menu"
+    item-flags:
+      - HIDE_ATTRIBUTES
+      - HIDE_UNBREAKABLE
+      - HIDE_ENCHANTS
   6:
     material: REDSTONE
     name: "<gold><bold>Settings"
@@ -116,6 +133,10 @@ lobby-items:
       - "<gray>Customize your experience"
     custom-model-data: 0
     action: "open_settings_menu"
+    item-flags:
+      - HIDE_ATTRIBUTES
+      - HIDE_UNBREAKABLE
+      - HIDE_ENCHANTS
   8:
     material: RED_BED
     name: "<red><bold>Quit to Lobby"
@@ -123,6 +144,10 @@ lobby-items:
       - "<gray>Return to the main lobby"
     custom-model-data: 0
     action: "quit_to_lobby"
+    item-flags:
+      - HIDE_ATTRIBUTES
+      - HIDE_UNBREAKABLE
+      - HIDE_ENCHANTS
 
 # ============================================================
 # Duel Settings

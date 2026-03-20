@@ -47,8 +47,6 @@ public class LobbyListener implements Listener {
 
         switch (action) {
             case "open_queue_menu" -> {
-                // Execute DeluxeMenus command or handle internally
-                // For now, dispatch the command which can be configured in DeluxeMenus
                 Bukkit.dispatchCommand(player, "dm open queue_menu");
             }
             case "open_leaderboard_menu" -> {

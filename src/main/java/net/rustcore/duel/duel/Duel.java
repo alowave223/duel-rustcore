@@ -9,6 +9,7 @@ import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Sound;
+import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -315,7 +316,15 @@ public class Duel {
         // Teleport players to lobby and give lobby items
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             for (Player player : getPlayers()) {
-                plugin.getLobbyManager().sendToLobby(player);
+                Collection<EnderPearl> pearls = player.getEnderPearls();
+
+                for (EnderPearl pearl : pearls) {
+                    pearl.remove();
+                }
+
+                if (pearls.isEmpty()) {
+                    plugin.getLobbyManager().sendToLobby(player);
+                }
             }
             plugin.getDuelManager().removeDuel(id);
         }, 60L); // 3 seconds after end message
