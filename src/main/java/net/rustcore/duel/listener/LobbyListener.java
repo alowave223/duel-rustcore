@@ -1,6 +1,8 @@
 package net.rustcore.duel.listener;
 
+import java.util.List;
 import net.rustcore.duel.DuelsPlugin;
+import net.rustcore.duel.lobby.LobbyManager;
 import net.rustcore.duel.util.CC;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -13,7 +15,6 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
-import org.bukkit.inventory.ItemStack;
 
 /**
  * Handles lobby-specific interactions:
@@ -39,38 +40,27 @@ public class LobbyListener implements Listener {
         // Don't handle lobby items if in a duel
         if (plugin.getDuelManager().isInDuel(player.getUniqueId())) return;
 
-        ItemStack item = event.getItem();
-        String action = plugin.getLobbyManager().getLobbyItemAction(item);
-        if (action == null || action.isEmpty()) return;
+        List<LobbyManager.ItemAction> actions = plugin.getLobbyManager()
+                .getLobbyItemActions(player.getInventory().getHeldItemSlot());
+        if (actions.isEmpty()) return;
 
         event.setCancelled(true);
 
-        switch (action) {
-            case "open_queue_menu" -> {
-                Bukkit.dispatchCommand(player, "dm open queue_menu");
-            }
-            case "open_leaderboard_menu" -> {
-                Bukkit.dispatchCommand(player, "dm open leaderboard_menu");
-            }
-            case "open_cosmetics_menu" -> {
-                player.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                        .append(CC.parse("<gray>Cosmetics coming soon!")));
-            }
-            case "open_hub_menu" -> {
-                Bukkit.dispatchCommand(player, "dm open hub_menu");
-            }
-            case "open_settings_menu" -> {
-                player.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                        .append(CC.parse("<gray>Settings coming soon!")));
-            }
-            case "quit_to_lobby" -> {
-                // Send to BungeeCord/Velocity lobby
-                // Using plugin messaging channel
-                sendToServer(player, "lobby");
-            }
-            default -> {
-                // Unknown action values from config are silently ignored
-                // to prevent arbitrary command injection via config editing.
+        for (LobbyManager.ItemAction act : actions) {
+            switch (act.type()) {
+                case "player" -> player.performCommand(act.command());
+                case "console" -> Bukkit.dispatchCommand(
+                        Bukkit.getConsoleSender(),
+                        act.command().replace("{player}", player.getName())
+                );
+                case "message" -> player.sendMessage(
+                        CC.parse(plugin.getMessage("prefix"))
+                                .append(CC.parse(act.command()))
+                );
+                case "bungee" -> sendToServer(player, act.command());
+                default -> plugin.getLogger().warning(
+                        "Unknown action type '" + act.type() + "' in lobby item"
+                );
             }
         }
     }
@@ -84,8 +74,7 @@ public class LobbyListener implements Listener {
 
         // Prevent moving lobby items
         if (event.getCurrentItem() != null) {
-            String action = plugin.getLobbyManager().getLobbyItemAction(event.getCurrentItem());
-            if (action != null && !action.isEmpty()) {
+            if (plugin.getLobbyManager().isLobbyItem(event.getCurrentItem())) {
                 event.setCancelled(true);
                 return;
             }
@@ -106,8 +95,7 @@ public class LobbyListener implements Listener {
         if (plugin.getDuelManager().isInDuel(player.getUniqueId())) return;
 
         // Prevent dropping lobby items
-        String action = plugin.getLobbyManager().getLobbyItemAction(event.getItemDrop().getItemStack());
-        if (action != null && !action.isEmpty()) {
+        if (plugin.getLobbyManager().isLobbyItem(event.getItemDrop().getItemStack())) {
             event.setCancelled(true);
         }
     }
@@ -118,9 +106,8 @@ public class LobbyListener implements Listener {
         if (plugin.getDuelManager().isInDuel(player.getUniqueId())) return;
 
         // Prevent swapping lobby items
-        String action1 = plugin.getLobbyManager().getLobbyItemAction(event.getMainHandItem());
-        String action2 = plugin.getLobbyManager().getLobbyItemAction(event.getOffHandItem());
-        if ((action1 != null && !action1.isEmpty()) || (action2 != null && !action2.isEmpty())) {
+        if (plugin.getLobbyManager().isLobbyItem(event.getMainHandItem())
+                || plugin.getLobbyManager().isLobbyItem(event.getOffHandItem())) {
             event.setCancelled(true);
         }
     }
