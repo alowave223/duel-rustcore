@@ -61,7 +61,15 @@ public class LobbyManager {
             String name = itemSection.getString("name", "");
             List<String> lore = itemSection.getStringList("lore");
             int cmd = itemSection.getInt("custom-model-data", 0);
-            String action = itemSection.getString("action", "");
+            List<ItemAction> actions = new ArrayList<>();
+            List<Map<?, ?>> execList = itemSection.getMapList("execute-on-use");
+            for (Map<?, ?> entry : execList) {
+                String type = String.valueOf(entry.getOrDefault("type", "player"));
+                String command = String.valueOf(entry.getOrDefault("command", ""));
+                if (!command.isEmpty()) {
+                    actions.add(new ItemAction(type, command));
+                }
+            }
 
             // Parse item flags
             List<String> flagNames = itemSection.getStringList("item-flags");
@@ -79,13 +87,13 @@ public class LobbyManager {
                     .name(name)
                     .lore(lore)
                     .customModelData(cmd)
-                    .pdc(LOBBY_ITEM_KEY, action);
+                    .pdc(LOBBY_ITEM_KEY, "true");
             if (!flags.isEmpty()) {
                 builder.flags(flags.toArray(new ItemFlag[0]));
             }
             ItemStack item = builder.build();
 
-            lobbyItems.put(slot, new LobbyItem(item, action, slot));
+            lobbyItems.put(slot, new LobbyItem(item, actions, slot));
         }
 
         plugin.getLogger().info("Loaded " + lobbyItems.size() + " lobby items");
@@ -129,12 +137,21 @@ public class LobbyManager {
     }
 
     /**
-     * Check if an item is a lobby item and return its action.
+     * Get the actions for a lobby item by checking the player's held slot.
      */
-    public String getLobbyItemAction(ItemStack item) {
-        if (item == null || !item.hasItemMeta()) return null;
-        return item.getItemMeta().getPersistentDataContainer()
+    public List<ItemAction> getLobbyItemActions(int slot) {
+        LobbyItem lobbyItem = lobbyItems.get(slot);
+        return lobbyItem != null ? lobbyItem.actions() : List.of();
+    }
+
+    /**
+     * Check if an item is a lobby item.
+     */
+    public boolean isLobbyItem(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return false;
+        String val = item.getItemMeta().getPersistentDataContainer()
                 .get(LOBBY_ITEM_KEY, PersistentDataType.STRING);
+        return val != null && !val.isEmpty();
     }
 
     /**
@@ -174,5 +191,7 @@ public class LobbyManager {
         load();
     }
 
-    public record LobbyItem(ItemStack item, String action, int slot) {}
+    public record ItemAction(String type, String command) {}
+
+    public record LobbyItem(ItemStack item, List<ItemAction> actions, int slot) {}
 }
