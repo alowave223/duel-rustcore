@@ -253,6 +253,15 @@ public class ArenaManager {
                             + "' has no spawn points for one or both teams."));
         }
 
+        SlimeArenaManager slime = plugin.getSlimeArenaManager();
+        if (slime != null && slime.isAvailable()) {
+            return allocateSlimeArena(duelId, template);
+        } else {
+            return allocateSchematicArena(duelId, template);
+        }
+    }
+
+    private CompletableFuture<ActiveArena> allocateSchematicArena(UUID duelId, Arena template) {
         // Allocate a slot on the main thread so the counter stays consistent.
         int slot = slotCounter.getAndIncrement();
         int pasteX = pasteOriginX + (slot * arenaSpacing);
@@ -331,6 +340,48 @@ public class ArenaManager {
         return result;
     }
 
+    private CompletableFuture<ActiveArena> allocateSlimeArena(UUID duelId, Arena template) {
+        CompletableFuture<ActiveArena> result = new CompletableFuture<>();
+
+        plugin.getSlimeArenaManager().createDuelWorld(duelId).thenAccept(world -> {
+            // createDuelWorld completes on main thread, but wrap in runTask for safety
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Location origin = new Location(world, 0, 0, 0);
+                ActiveArena active = new ActiveArena(template, duelId, origin);
+
+                for (Location offset : template.getTeamASpawns()) {
+                    active.addTeamASpawn(new Location(
+                            world, offset.getX(), offset.getY(), offset.getZ(),
+                            offset.getYaw(), offset.getPitch()));
+                }
+                for (Location offset : template.getTeamBSpawns()) {
+                    active.addTeamBSpawn(new Location(
+                            world, offset.getX(), offset.getY(), offset.getZ(),
+                            offset.getYaw(), offset.getPitch()));
+                }
+
+                // Attach polygon (no shift needed — slime world is its own coordinate space)
+                if (template.getTemplatePolygon() != null) {
+                    active.setPolygon(new CustomPoly2D(
+                            template.getTemplatePolygon().getPoints(),
+                            template.getTemplatePolygon().getMinY(),
+                            template.getTemplatePolygon().getMaxY(),
+                            world));
+                }
+
+                activeArenas.put(duelId, active);
+                plugin.getLogger().info("Allocated ASWM arena '" + template.getId()
+                        + "' world '" + world.getName() + "' for duel " + duelId);
+                result.complete(active);
+            });
+        }).exceptionally(ex -> {
+            result.completeExceptionally(ex);
+            return null;
+        });
+
+        return result;
+    }
+
     // -------------------------------------------------------------------------
     // Restoration (between rounds)
     // -------------------------------------------------------------------------
@@ -340,6 +391,20 @@ public class ArenaManager {
      * Does NOT deallocate the slot — the duel continues.
      */
     public CompletableFuture<Void> restoreArena(ActiveArena active) {
+        UUID duelId = active.getDuelId();
+
+        SlimeArenaManager slime = plugin.getSlimeArenaManager();
+        if (slime != null && slime.isAvailable()) {
+            // ASWM path: just revert player-placed blocks, world stays alive
+            blockTracker.revertAndClear(duelId);
+            return CompletableFuture.completedFuture(null);
+        } else {
+            // WorldEdit path: re-paste the schematic (existing logic)
+            return restoreSchematicArena(active);
+        }
+    }
+
+    private CompletableFuture<Void> restoreSchematicArena(ActiveArena active) {
         UUID duelId = active.getDuelId();
 
         return CompletableFuture.runAsync(() -> {
@@ -379,6 +444,12 @@ public class ArenaManager {
         if (active == null) return;
         activeArenas.remove(active.getDuelId());
         blockTracker.clearDuel(active.getDuelId());
+
+        SlimeArenaManager slime = plugin.getSlimeArenaManager();
+        if (slime != null && slime.isAvailable()) {
+            slime.destroyDuelWorld(active.getDuelId());
+        }
+
         plugin.getLogger().info("Deallocated arena slot for duel " + active.getDuelId());
     }
 
@@ -411,6 +482,7 @@ public class ArenaManager {
     public Arena getTemplate(String id) { return templates.get(id); }
     public Collection<Arena> getAllTemplates() { return templates.values(); }
     public ActiveArena getActiveArena(UUID duelId) { return activeArenas.get(duelId); }
+    public Collection<ActiveArena> getAllActiveArenas() { return activeArenas.values(); }
     public PlacedBlockTracker getBlockTracker() { return blockTracker; }
     public String getArenaWorldName() { return arenaWorldName; }
 

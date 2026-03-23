@@ -1,5 +1,7 @@
 package net.rustcore.duel.arena;
 
+import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 
 import java.util.*;
@@ -16,9 +18,13 @@ public class PlacedBlockTracker {
     // Key: duel UUID -> Set of placed block locations
     private final Map<UUID, Set<Long>> placedBlocks = new ConcurrentHashMap<>();
 
+    // Key: duel UUID -> World the blocks are in (needed for revert)
+    private final Map<UUID, World> duelWorlds = new ConcurrentHashMap<>();
+
     public void trackBlock(UUID duelId, Block block) {
         placedBlocks.computeIfAbsent(duelId, k -> ConcurrentHashMap.newKeySet())
                 .add(encodeLocation(block));
+        duelWorlds.putIfAbsent(duelId, block.getWorld());
     }
 
     public boolean isPlacedBlock(UUID duelId, Block block) {
@@ -35,6 +41,29 @@ public class PlacedBlockTracker {
 
     public void clearDuel(UUID duelId) {
         placedBlocks.remove(duelId);
+        duelWorlds.remove(duelId);
+    }
+
+    /**
+     * Revert all player-placed blocks for a duel back to AIR and clear tracking.
+     * Used for inter-round arena reset (Bo3/Bo5) — no world re-clone needed.
+     * MUST be called from the main thread (modifies blocks).
+     */
+    public void revertAndClear(UUID duelId) {
+        Set<Long> blocks = placedBlocks.remove(duelId);
+        World world = duelWorlds.remove(duelId);
+        if (blocks == null || world == null) return;
+
+        for (long encoded : blocks) {
+            int x = (int) (encoded >> 38);
+            // Sign-extend the 26-bit value
+            if ((x & 0x2000000) != 0) x |= ~0x3FFFFFF;
+            int z = (int) ((encoded >> 12) & 0x3FFFFFF);
+            if ((z & 0x2000000) != 0) z |= ~0x3FFFFFF;
+            int y = (int) (encoded & 0xFFF);
+
+            world.getBlockAt(x, y, z).setType(Material.AIR, false);
+        }
     }
 
     /**
