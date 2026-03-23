@@ -1,6 +1,7 @@
 package net.rustcore.duel;
 
 import net.rustcore.duel.arena.ArenaManager;
+import net.rustcore.duel.arena.SlimeArenaManager;
 import net.rustcore.duel.command.DuelCommand;
 import net.rustcore.duel.placeholder.DuelsExpansion;
 import net.rustcore.duel.duel.DuelManager;
@@ -24,6 +25,7 @@ public class DuelsPlugin extends JavaPlugin {
     private DuelManager duelManager;
     private StatsManager statsManager;
     private LobbyManager lobbyManager;
+    private SlimeArenaManager slimeArenaManager;
 
     @Override
     public void onEnable() {
@@ -38,6 +40,15 @@ public class DuelsPlugin extends JavaPlugin {
 
         // Initialize managers
         arenaManager = new ArenaManager(this);
+        // Initialize ASWM integration (optional — falls back to WorldEdit if absent)
+        slimeArenaManager = new SlimeArenaManager(this);
+        boolean aswmReady = slimeArenaManager.init();
+        if (aswmReady) {
+            getLogger().info("Using SlimeWorldManager for arena instances.");
+        } else {
+            getLogger().info("Using WorldEdit schematic pasting for arena instances.");
+            slimeArenaManager = null;
+        }
         modeManager = new ModeManager(this);
         duelManager = new DuelManager(this);
         statsManager = new StatsManager(this);
@@ -79,6 +90,10 @@ public class DuelsPlugin extends JavaPlugin {
         // Save all stats
         if (statsManager != null) {
             statsManager.saveAll();
+        }
+
+        if (slimeArenaManager != null) {
+            slimeArenaManager.destroyAll();
         }
 
         // End all active duels gracefully
@@ -134,4 +149,5 @@ public class DuelsPlugin extends JavaPlugin {
     public DuelManager getDuelManager() { return duelManager; }
     public StatsManager getStatsManager() { return statsManager; }
     public LobbyManager getLobbyManager() { return lobbyManager; }
+    public SlimeArenaManager getSlimeArenaManager() { return slimeArenaManager; }
 }
