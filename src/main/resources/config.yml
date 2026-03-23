@@ -46,6 +46,11 @@ arenas:
         z: 10.0
         yaw: 180.0
         pitch: 0.0
+  # SlimeWorldManager integration (optional — falls back to WorldEdit if absent)
+  # Name of the template SlimeWorld to clone for each duel
+  template-world: "duel_template"
+  # ASWM loader type: "file", "mysql", "mongodb", etc.
+  slime-loader: "file"
 
 # List of arenas (each references a .schem file in the schematics folder)
 arena-list:
@@ -71,6 +76,17 @@ arena-list:
           z: 10.0
           yaw: 180.0
           pitch: 0.0
+    # 2D polygon boundary for this arena (relative to paste origin).
+    # Points are "x,z" pairs. minY/maxY define the vertical bounds.
+    # If omitted, no polygon boundary checking is applied.
+    polygon:
+      min-y: 60
+      max-y: 120
+      points:
+        - "-25,-25"
+        - "25,-25"
+        - "25,25"
+        - "-25,25"
 
 # ============================================================
 # Lobby Hotbar Items

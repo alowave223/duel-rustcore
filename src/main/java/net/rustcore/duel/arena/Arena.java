@@ -21,6 +21,7 @@ public class Arena {
     private final File schematicFile;
     private final List<Location> teamASpawns = new ArrayList<>();
     private final List<Location> teamBSpawns = new ArrayList<>();
+    private CustomPoly2D templatePolygon; // Polygon relative to paste origin (null if not configured)
 
     public Arena(String id, String displayName, File schematicFile) {
         this.id = id;
@@ -37,6 +38,9 @@ public class Arena {
 
     public void addTeamASpawn(Location loc) { teamASpawns.add(loc); }
     public void addTeamBSpawn(Location loc) { teamBSpawns.add(loc); }
+
+    public CustomPoly2D getTemplatePolygon() { return templatePolygon; }
+    public void setTemplatePolygon(CustomPoly2D polygon) { this.templatePolygon = polygon; }
 
     public void clearSpawns() {
         teamASpawns.clear();
