@@ -1,6 +1,7 @@
 package net.rustcore.duel.arena;
 
 import org.bukkit.Location;
+import org.bukkit.World;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,7 @@ public class ActiveArena {
     private final Location pasteOrigin;
     private final List<Location> teamASpawns = new ArrayList<>();
     private final List<Location> teamBSpawns = new ArrayList<>();
+    private CustomPoly2D polygon;
 
     public ActiveArena(Arena template, UUID duelId, Location pasteOrigin) {
         this.template = template;
@@ -39,6 +41,14 @@ public class ActiveArena {
 
     public void addTeamASpawn(Location loc) { teamASpawns.add(loc); }
     public void addTeamBSpawn(Location loc) { teamBSpawns.add(loc); }
+
+    public CustomPoly2D getPolygon() { return polygon; }
+    public void setPolygon(CustomPoly2D polygon) { this.polygon = polygon; }
+
+    /** Convenience: get the world this arena instance lives in. */
+    public World getWorld() {
+        return pasteOrigin != null ? pasteOrigin.getWorld() : null;
+    }
 
     /**
      * Pick one random spawn from Team A and one from Team B.

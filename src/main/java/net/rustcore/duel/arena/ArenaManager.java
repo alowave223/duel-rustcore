@@ -127,6 +127,19 @@ public class ArenaManager {
                 addOffsetsToArena(arena, globalTeamA, globalTeamB);
             }
 
+            // Load polygon boundary if configured
+            ConfigurationSection polySection = arenaSection.getConfigurationSection(arenaId + ".polygon");
+            if (polySection != null) {
+                try {
+                    CustomPoly2D polygon = CustomPoly2D.fromConfig(polySection, null); // null world during template load
+                    arena.setTemplatePolygon(polygon);
+                    plugin.getLogger().info("Arena '" + arenaId + "' loaded polygon with "
+                            + polygon.getPoints().size() + " points.");
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Arena '" + arenaId + "' has invalid polygon config: " + e.getMessage());
+                }
+            }
+
             templates.put(arenaId, arena);
             plugin.getLogger().info("Registered arena template: " + arenaId);
         }
@@ -295,6 +308,12 @@ public class ArenaManager {
                                 offset.getYaw(),
                                 offset.getPitch()
                         ));
+                    }
+
+                    // Attach polygon boundary (shifted to absolute coordinates)
+                    if (template.getTemplatePolygon() != null) {
+                        CustomPoly2D shifted = template.getTemplatePolygon().shift(pasteX, pasteZ, world);
+                        active.setPolygon(shifted);
                     }
 
                     activeArenas.put(duelId, active);
