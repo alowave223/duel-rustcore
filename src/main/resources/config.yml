@@ -4,8 +4,6 @@
 
 # General settings
 general:
-  # World where arenas are pasted and duels take place
-  arena-world: "duels_world"
   # World where the lobby is
   lobby-world: "lobby"
   # Lobby spawn location (x, y, z, yaw, pitch)
@@ -20,16 +18,7 @@ general:
 # Arena Settings
 # ============================================================
 arenas:
-  # Directory where .schem files are stored (relative to plugin folder)
-  schematics-folder: "schematics"
-  # Spacing between arena paste locations (in blocks) to avoid overlap
-  arena-spacing: 200
-  # Base paste coordinates in the arena world
-  paste-origin:
-    x: 1000
-    y: 80
-    z: 1000
-  # Global default spawn-point offsets (relative to the schematic paste origin).
+  # Global default spawn-point offsets (relative to the world origin).
   # Used by any arena that does NOT define its own spawn-points section.
   # Add multiple entries under team-a / team-b for random selection each round.
   # At least one entry per team is required.
@@ -46,20 +35,18 @@ arenas:
         z: 10.0
         yaw: 180.0
         pitch: 0.0
-  # SlimeWorldManager integration (optional — falls back to WorldEdit if absent)
   # Name of the template SlimeWorld to clone for each duel
   template-world: "duel_template"
-  # ASWM loader type: "file", "mysql", "mongodb", etc.
-  slime-loader: "file"
+  # Directory for ASWM file-loader storage (relative to server root)
+  slime-directory: "slime_worlds"
 
-# List of arenas (each references a .schem file in the schematics folder)
+# List of arenas (each maps to a template in the ASWM world)
 arena-list:
   example_arena:
-    schematic: "example_arena.schematic"
     display-name: "<gradient:#ff6b6b:#ffa500>Example Arena</gradient>"
     # If true, this arena is available for matchmaking
     enabled: true
-    # Per-arena spawn-point offsets (relative to schematic paste origin).
+    # Per-arena spawn-point offsets (relative to world origin).
     # Overrides the global arenas.spawn-points when present.
     # Remove this section to fall back to the global defaults.
     # You can list multiple offsets per team — one is chosen randomly each round.
@@ -76,7 +63,7 @@ arena-list:
           z: 10.0
           yaw: 180.0
           pitch: 0.0
-    # 2D polygon boundary for this arena (relative to paste origin).
+    # 2D polygon boundary for this arena (relative to world origin).
     # Points are "x,z" pairs. minY/maxY define the vertical bounds.
     # If omitted, no polygon boundary checking is applied.
     polygon:
