@@ -23,8 +23,8 @@ import java.util.logging.Level;
  * Manages per-duel SlimeWorld instances via Advanced SlimeWorldManager (ASWM).
  *
  * Lifecycle:
- * 1. On plugin enable: load the template world as a read-only source.
- * 2. On duel start: clone the template into a new world named "duel_{uuid12}".
+ * 1. On plugin enable: initialize ASWM API and file loader.
+ * 2. On duel start: read the arena's .slime world from disk, clone it into "duel_{uuid12}", and load it.
  * 3. Between rounds (Bo3/Bo5): same world stays alive, blocks reverted via PlacedBlockTracker.
  * 4. On match end: unload and delete the cloned world.
  */
@@ -33,8 +33,6 @@ public class SlimeArenaManager {
     private final DuelsPlugin plugin;
     private AdvancedSlimePaperAPI aswmApi;
     private SlimeLoader loader;
-    private SlimeWorld templateWorld;
-    private String templateWorldName;
     private boolean available = false;
 
     /** Active cloned worlds: duelId -> world name */
@@ -47,17 +45,9 @@ public class SlimeArenaManager {
     /**
      * Initialize ASWM integration. Call from onEnable().
      *
-     * @return true if ASWM was found and the template loaded successfully
+     * @return true if ASWM API and file loader initialized successfully
      */
     public boolean init() {
-        // Check if ASP is available via its API service (works regardless of plugin name)
-        try {
-            Class.forName("com.infernalsuite.asp.api.AdvancedSlimePaperAPI");
-        } catch (ClassNotFoundException e) {
-            plugin.getLogger().severe("AdvancedSlimePaper API not found on the classpath.");
-            return false;
-        }
-
         try {
             aswmApi = AdvancedSlimePaperAPI.instance();
         } catch (Exception e) {
@@ -70,8 +60,6 @@ public class SlimeArenaManager {
             return false;
         }
 
-        // Get the configured template name and initialize file loader
-        templateWorldName = plugin.getConfig().getString("arenas.template-world", "duel_template");
         String slimeDir = plugin.getConfig().getString("arenas.slime-directory", "slime_worlds");
 
         try {
@@ -81,45 +69,39 @@ public class SlimeArenaManager {
             return false;
         }
 
-        // Load the template world (read-only, not applied to server)
-        try {
-            SlimePropertyMap props = new SlimePropertyMap();
-            props.setValue(SlimeProperties.PVP, true);
-            props.setValue(SlimeProperties.ALLOW_ANIMALS, false);
-            props.setValue(SlimeProperties.ALLOW_MONSTERS, false);
-
-            templateWorld = aswmApi.readWorld(loader, templateWorldName, true, props);
-            plugin.getLogger().info("ASWM template world '" + templateWorldName + "' loaded successfully.");
-            available = true;
-            return true;
-        } catch (Exception e) {
-            plugin.getLogger().log(Level.SEVERE,
-                    "Failed to load ASWM template world '" + templateWorldName + "'", e);
-            return false;
-        }
+        available = true;
+        plugin.getLogger().info("ASWM arena system initialized. Worlds loaded from: " + slimeDir);
+        return true;
     }
 
     /**
-     * Clone the template world for a specific duel and load it into the server.
+     * Read the arena's SlimeWorld from disk, clone it for a specific duel, and load it.
      *
-     * @param duelId the duel's UUID
+     * @param duelId  the duel's UUID
+     * @param arenaId the arena template ID (must match a .slime file in the slime-directory)
      * @return CompletableFuture that completes with the Bukkit World on the main thread
      */
-    public CompletableFuture<World> createDuelWorld(UUID duelId) {
+    public CompletableFuture<World> createDuelWorld(UUID duelId, String arenaId) {
         if (!available) {
             return CompletableFuture.failedFuture(
                     new IllegalStateException("ASWM is not available"));
         }
 
-        // Use 12 hex chars to reduce collision risk vs the original 8
         String worldName = "duel_" + duelId.toString().replace("-", "").substring(0, 12);
         CompletableFuture<World> future = new CompletableFuture<>();
 
         CompletableFuture.runAsync(() -> {
             try {
-                SlimeWorld cloned = templateWorld.clone(worldName);
+                // Read the arena's pre-built world from disk (read-only source)
+                SlimePropertyMap props = new SlimePropertyMap();
+                props.setValue(SlimeProperties.PVP, true);
+                props.setValue(SlimeProperties.ALLOW_ANIMALS, false);
+                props.setValue(SlimeProperties.ALLOW_MONSTERS, false);
 
-                // Load the world on the main thread
+                SlimeWorld source = aswmApi.readWorld(loader, arenaId, true, props);
+                SlimeWorld cloned = source.clone(worldName);
+
+                // Load the cloned world on the main thread
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     try {
                         SlimeWorldInstance instance = aswmApi.loadWorld(cloned, true);
@@ -130,19 +112,32 @@ public class SlimeArenaManager {
                             return;
                         }
                         activeWorlds.put(duelId, worldName);
-                        plugin.getLogger().info("Created duel world: " + worldName);
+                        plugin.getLogger().info("Created duel world: " + worldName + " (from arena: " + arenaId + ")");
                         future.complete(world);
                     } catch (Exception e) {
                         future.completeExceptionally(e);
                     }
                 });
             } catch (Exception e) {
-                plugin.getLogger().log(Level.SEVERE, "Failed to clone template for duel " + duelId, e);
+                plugin.getLogger().log(Level.SEVERE,
+                        "Failed to load arena world '" + arenaId + "' for duel " + duelId, e);
                 future.completeExceptionally(e);
             }
         });
 
         return future;
+    }
+
+    /**
+     * Check if a .slime world file exists for the given arena ID.
+     */
+    public boolean worldExists(String arenaId) {
+        try {
+            return loader.worldExists(arenaId);
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.WARNING, "Failed to check world existence for arena '" + arenaId + "'", e);
+            return false;
+        }
     }
 
     /**
