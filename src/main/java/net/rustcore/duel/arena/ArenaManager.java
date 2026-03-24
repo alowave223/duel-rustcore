@@ -97,6 +97,15 @@ public class ArenaManager {
             }
 
             templates.put(arenaId, arena);
+
+            // Validate that the .slime world file exists for this arena
+            SlimeArenaManager slime = plugin.getSlimeArenaManager();
+            if (slime != null && slime.isAvailable() && !slime.worldExists(arenaId)) {
+                plugin.getLogger().warning("Arena '" + arenaId
+                        + "' has no matching .slime world file in the slime-directory. "
+                        + "This arena will fail to load at duel time.");
+            }
+
             plugin.getLogger().info("Registered arena template: " + arenaId);
         }
     }
@@ -215,7 +224,7 @@ public class ArenaManager {
 
         CompletableFuture<ActiveArena> result = new CompletableFuture<>();
 
-        slime.createDuelWorld(duelId).thenAccept(world -> {
+        slime.createDuelWorld(duelId, template.getId()).thenAccept(world -> {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 Location origin = new Location(world, 0, 0, 0);
                 ActiveArena active = new ActiveArena(template, duelId, origin);
