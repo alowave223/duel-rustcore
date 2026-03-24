@@ -212,7 +212,7 @@ public class Duel {
      * @param roundWinner UUID of the round winner, or null for a draw
      */
     private void endRound(UUID roundWinner) {
-        if (state == DuelState.ROUND_ENDING || state == DuelState.ENDED) return;
+        if (state != DuelState.ACTIVE) return;
         state = DuelState.ROUND_ENDING;
 
         if (timeLimitTask != null) {
@@ -284,6 +284,11 @@ public class Duel {
     private void endDuel(UUID winnerId) {
         state = DuelState.ENDED;
 
+        // Immediately prevent post-match combat
+        for (Player player : getPlayers()) {
+            player.setGameMode(GameMode.ADVENTURE);
+        }
+
         if (winnerId != null) {
             Player winner = Bukkit.getPlayer(winnerId);
             String winnerName = winner != null ? winner.getName() : "Unknown";
@@ -307,26 +312,21 @@ public class Duel {
 
         mode.onDuelEnd(this);
 
-        // Restore arena one last time, then deallocate the slot
-        plugin.getArenaManager().restoreArena(activeArena).thenRun(() -> {
-            Bukkit.getScheduler().runTask(plugin, () ->
-                    plugin.getArenaManager().deallocateArena(activeArena));
-        });
-
-        // Teleport players to lobby and give lobby items
+        // Teleport players to lobby FIRST, then destroy the arena
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             for (Player player : getPlayers()) {
-                Collection<EnderPearl> pearls = player.getEnderPearls();
-
-                for (EnderPearl pearl : pearls) {
+                // Remove active ender pearls to prevent post-duel teleports
+                for (EnderPearl pearl : player.getEnderPearls()) {
                     pearl.remove();
                 }
-
-                if (pearls.isEmpty()) {
-                    plugin.getLobbyManager().sendToLobby(player);
-                }
+                // Always send to lobby (fixed: previously skipped if pearls existed)
+                plugin.getLobbyManager().sendToLobby(player);
             }
+
             plugin.getDuelManager().removeDuel(id);
+
+            // Now safe to destroy the arena world (all players are in lobby)
+            plugin.getArenaManager().deallocateArena(activeArena);
         }, 60L); // 3 seconds after end message
     }
 
@@ -366,20 +366,29 @@ public class Duel {
         state = DuelState.ENDED;
         mode.onDuelEnd(this);
 
+        // Remove active ender pearls from all online players
+        for (Player player : getPlayers()) {
+            for (EnderPearl pearl : player.getEnderPearls()) {
+                pearl.remove();
+            }
+        }
+
         if (winnerId != null) {
             Player winner = Bukkit.getPlayer(winnerId);
             if (winner != null) {
                 winner.sendMessage(CC.parse(plugin.getMessage("prefix"))
                         .append(CC.parse(plugin.getMessage("opponent-disconnected"))));
                 plugin.getStatsManager().recordResult(mode.getId(), winnerId, disconnectedPlayer);
-                plugin.getLobbyManager().sendToLobby(winner);
             }
         }
 
-        plugin.getArenaManager().restoreArena(activeArena).thenRun(() -> {
-            Bukkit.getScheduler().runTask(plugin, () ->
-                    plugin.getArenaManager().deallocateArena(activeArena));
-        });
+        // Teleport ALL online participants to lobby before destroying arena
+        for (Player player : getPlayers()) {
+            plugin.getLobbyManager().sendToLobby(player);
+        }
+
+        // Then destroy the arena
         plugin.getDuelManager().removeDuel(id);
+        plugin.getArenaManager().deallocateArena(activeArena);
     }
 }
