@@ -35,8 +35,6 @@ arenas:
         z: 10.0
         yaw: 180.0
         pitch: 0.0
-  # Name of the template SlimeWorld to clone for each duel
-  template-world: "duel_template"
   # Directory for ASWM file-loader storage (relative to server root)
   slime-directory: "slime_worlds"
 
