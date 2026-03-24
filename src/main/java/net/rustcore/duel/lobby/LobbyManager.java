@@ -64,8 +64,10 @@ public class LobbyManager {
             List<ItemAction> actions = new ArrayList<>();
             List<Map<?, ?>> execList = itemSection.getMapList("execute-on-use");
             for (Map<?, ?> entry : execList) {
-                String type = String.valueOf(entry.getOrDefault("type", "player"));
-                String command = String.valueOf(entry.getOrDefault("command", ""));
+                Object typeObj = entry.get("type");
+                Object cmdObj = entry.get("command");
+                String type = typeObj != null ? String.valueOf(typeObj) : "player";
+                String command = cmdObj != null ? String.valueOf(cmdObj) : "";
                 if (!command.isEmpty()) {
                     actions.add(new ItemAction(type, command));
                 }
