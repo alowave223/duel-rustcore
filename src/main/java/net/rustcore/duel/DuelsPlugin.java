@@ -33,22 +33,15 @@ public class DuelsPlugin extends JavaPlugin {
         saveDefaultConfig();
         saveResourceIfMissing("modes/kitbuilder.yml");
 
-        // Create schematics folder
-        File schemFolder = new File(getDataFolder(),
-                getConfig().getString("arenas.schematics-folder", "schematics"));
-        if (!schemFolder.exists()) schemFolder.mkdirs();
-
         // Initialize managers
         arenaManager = new ArenaManager(this);
-        // Initialize ASWM integration (optional — falls back to WorldEdit if absent)
         slimeArenaManager = new SlimeArenaManager(this);
-        boolean aswmReady = slimeArenaManager.init();
-        if (aswmReady) {
-            getLogger().info("Using SlimeWorldManager for arena instances.");
-        } else {
-            getLogger().info("Using WorldEdit schematic pasting for arena instances.");
-            slimeArenaManager = null;
+        if (!slimeArenaManager.init()) {
+            getLogger().severe("AdvancedSlimePaper is required but failed to initialize. Disabling plugin.");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
         }
+        getLogger().info("SlimeWorldManager arena system initialized.");
         modeManager = new ModeManager(this);
         duelManager = new DuelManager(this);
         statsManager = new StatsManager(this);
