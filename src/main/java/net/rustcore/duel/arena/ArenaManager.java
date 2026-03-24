@@ -260,6 +260,7 @@ public class ArenaManager {
     /**
      * Restore the arena between rounds — revert player-placed blocks.
      * The SlimeWorld stays alive; no re-clone needed.
+     * <p>Must be called from the main thread (block mutations).
      */
     public CompletableFuture<Void> restoreArena(ActiveArena active) {
         blockTracker.revertAndClear(active.getDuelId());
@@ -277,7 +278,10 @@ public class ArenaManager {
         if (active == null) return;
         activeArenas.remove(active.getDuelId());
         blockTracker.clearDuel(active.getDuelId());
-        plugin.getSlimeArenaManager().destroyDuelWorld(active.getDuelId());
+        SlimeArenaManager slime = plugin.getSlimeArenaManager();
+        if (slime != null) {
+            slime.destroyDuelWorld(active.getDuelId());
+        }
         plugin.getLogger().info("Deallocated arena for duel " + active.getDuelId());
     }
 
