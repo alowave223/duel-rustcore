@@ -11,7 +11,7 @@ import java.util.UUID;
 /**
  * A live instance of an arena allocated for a specific duel.
  * Multiple ActiveArenas can share the same {@link Arena} template
- * and be pasted at different world coordinates simultaneously.
+ * in separate SlimeWorld instances simultaneously.
  *
  * Spawn points are split into two teams (A and B).
  * Use {@link #pickSpawns(Random)} to randomly select one spawn per team
@@ -21,20 +21,20 @@ public class ActiveArena {
 
     private final Arena template;
     private final UUID duelId;
-    private final Location pasteOrigin;
+    private final Location origin;
     private final List<Location> teamASpawns = new ArrayList<>();
     private final List<Location> teamBSpawns = new ArrayList<>();
     private CustomPoly2D polygon;
 
-    public ActiveArena(Arena template, UUID duelId, Location pasteOrigin) {
+    public ActiveArena(Arena template, UUID duelId, Location origin) {
         this.template = template;
         this.duelId = duelId;
-        this.pasteOrigin = pasteOrigin;
+        this.origin = origin;
     }
 
     public Arena getTemplate() { return template; }
     public UUID getDuelId() { return duelId; }
-    public Location getPasteOrigin() { return pasteOrigin; }
+    public Location getOrigin() { return origin; }
 
     public List<Location> getTeamASpawns() { return teamASpawns; }
     public List<Location> getTeamBSpawns() { return teamBSpawns; }
@@ -47,7 +47,7 @@ public class ActiveArena {
 
     /** Convenience: get the world this arena instance lives in. */
     public World getWorld() {
-        return pasteOrigin != null ? pasteOrigin.getWorld() : null;
+        return origin != null ? origin.getWorld() : null;
     }
 
     /**
@@ -69,7 +69,7 @@ public class ActiveArena {
         return result;
     }
 
-    /** Convenience: the template id (schematic name). */
+    /** Convenience: the template id. */
     public String getId() { return template.getId(); }
     public String getDisplayName() { return template.getDisplayName(); }
 }
