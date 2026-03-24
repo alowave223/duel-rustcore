@@ -1,6 +1,8 @@
 package net.rustcore.duel.listener;
 
 import net.rustcore.duel.DuelsPlugin;
+import net.rustcore.duel.arena.ActiveArena;
+import net.rustcore.duel.arena.CustomPoly2D;
 import net.rustcore.duel.arena.PlacedBlockTracker;
 import net.rustcore.duel.duel.Duel;
 import net.rustcore.duel.duel.DuelState;
@@ -36,6 +38,13 @@ public class ArenaProtectionListener implements Listener {
             return;
         }
 
+        // Block placement outside polygon boundary
+        CustomPoly2D polygon = duel.getActiveArena().getPolygon();
+        if (polygon != null && !polygon.contains(event.getBlock().getLocation())) {
+            event.setCancelled(true);
+            return;
+        }
+
         PlacedBlockTracker tracker = plugin.getArenaManager().getBlockTracker();
         tracker.trackBlock(duel.getId(), event.getBlock());
     }
@@ -47,6 +56,13 @@ public class ArenaProtectionListener implements Listener {
         if (duel == null) return;
 
         if (duel.getState() != DuelState.ACTIVE) {
+            event.setCancelled(true);
+            return;
+        }
+
+        // Block break outside polygon boundary is always denied
+        CustomPoly2D polygon = duel.getActiveArena().getPolygon();
+        if (polygon != null && !polygon.contains(event.getBlock().getLocation())) {
             event.setCancelled(true);
             return;
         }
@@ -65,11 +81,35 @@ public class ArenaProtectionListener implements Listener {
         PlacedBlockTracker tracker = plugin.getArenaManager().getBlockTracker();
         // O(blocks × duels) → O(blocks): single tracker scan per block
         event.blockList().removeIf(block -> !tracker.isPlacedByAnyDuelAndRemove(block));
+        // Also filter out blocks outside any active arena's polygon
+        event.blockList().removeIf(block -> {
+            for (ActiveArena arena : plugin.getArenaManager().getAllActiveArenas()) {
+                CustomPoly2D poly = arena.getPolygon();
+                if (poly != null && poly.getWorld() != null
+                        && poly.getWorld().equals(block.getWorld())
+                        && !poly.contains(block.getLocation())) {
+                    return true; // Remove from explosion list
+                }
+            }
+            return false;
+        });
     }
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onBlockExplode(BlockExplodeEvent event) {
         PlacedBlockTracker tracker = plugin.getArenaManager().getBlockTracker();
         event.blockList().removeIf(block -> !tracker.isPlacedByAnyDuelAndRemove(block));
+        // Also filter out blocks outside any active arena's polygon
+        event.blockList().removeIf(block -> {
+            for (ActiveArena arena : plugin.getArenaManager().getAllActiveArenas()) {
+                CustomPoly2D poly = arena.getPolygon();
+                if (poly != null && poly.getWorld() != null
+                        && poly.getWorld().equals(block.getWorld())
+                        && !poly.contains(block.getLocation())) {
+                    return true;
+                }
+            }
+            return false;
+        });
     }
 }

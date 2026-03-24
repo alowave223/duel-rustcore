@@ -1,11 +1,13 @@
 package net.rustcore.duel.listener;
 
 import net.rustcore.duel.DuelsPlugin;
+import net.rustcore.duel.arena.CustomPoly2D;
 import net.rustcore.duel.duel.Duel;
 import net.rustcore.duel.duel.DuelState;
 import net.rustcore.duel.modification.Modification;
 
-import java.util.List;
+import java.util.EnumSet;
+import java.util.Set;
 
 import org.bukkit.GameMode;
 import org.bukkit.entity.EnderPearl;
@@ -30,7 +32,7 @@ import org.bukkit.util.Vector;
 public class DuelListener implements Listener {
 
     private final DuelsPlugin plugin;
-    private static final List<DuelState> ALLOW_MOVEMENT = List.of(
+    private static final Set<DuelState> ALLOW_MOVEMENT = EnumSet.of(
             DuelState.ACTIVE, DuelState.ROUND_ENDING,
             DuelState.ENDED, DuelState.PREPARING
         );
@@ -218,6 +220,14 @@ public class DuelListener implements Listener {
 
             if (state != DuelState.ACTIVE) {
                 event.setCancelled(true);
+                return;
+            }
+
+            // Block ender pearl if destination is outside the arena polygon
+            CustomPoly2D polygon = duel.getActiveArena().getPolygon();
+            if (polygon != null && event.getTo() != null && !polygon.contains(event.getTo())) {
+                event.setCancelled(true);
+                return;
             }
         }
     }
@@ -295,8 +305,16 @@ public class DuelListener implements Listener {
         if (duel == null)
             return;
 
-        if (ALLOW_MOVEMENT.contains(duel.getState()))
+        if (ALLOW_MOVEMENT.contains(duel.getState())) {
+            // For ACTIVE state, enforce polygon boundary if defined
+            if (duel.getState() == DuelState.ACTIVE && event.hasChangedPosition() && event.getTo() != null) {
+                CustomPoly2D polygon = duel.getActiveArena().getPolygon();
+                if (polygon != null && !polygon.contains(event.getTo())) {
+                    event.setTo(event.getFrom());
+                }
+            }
             return;
+        }
 
         if (event.hasChangedPosition()) {
             event.setTo(event.getFrom());
