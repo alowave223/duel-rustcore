@@ -2,12 +2,11 @@ package net.rustcore.duel.arena;
 
 import org.bukkit.Location;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Arena template: schematic definition with static spawn-point offsets.
+ * Arena template: spawn-point offsets and polygon boundary definition.
  * Does NOT track availability — multiple duels can use the same template
  * simultaneously via separate {@link ActiveArena} instances.
  *
@@ -18,20 +17,17 @@ public class Arena {
 
     private final String id;
     private final String displayName;
-    private final File schematicFile;
     private final List<Location> teamASpawns = new ArrayList<>();
     private final List<Location> teamBSpawns = new ArrayList<>();
-    private CustomPoly2D templatePolygon; // Polygon relative to paste origin (null if not configured)
+    private CustomPoly2D templatePolygon;
 
-    public Arena(String id, String displayName, File schematicFile) {
+    public Arena(String id, String displayName) {
         this.id = id;
         this.displayName = displayName;
-        this.schematicFile = schematicFile;
     }
 
     public String getId() { return id; }
     public String getDisplayName() { return displayName; }
-    public File getSchematicFile() { return schematicFile; }
 
     public List<Location> getTeamASpawns() { return teamASpawns; }
     public List<Location> getTeamBSpawns() { return teamBSpawns; }
