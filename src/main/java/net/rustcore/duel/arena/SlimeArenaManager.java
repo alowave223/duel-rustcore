@@ -1,14 +1,18 @@
 package net.rustcore.duel.arena;
 
-import com.infernalsuite.aswm.api.AdvancedSlimePaperAPI;
-import com.infernalsuite.aswm.api.loaders.SlimeLoader;
-import com.infernalsuite.aswm.api.world.SlimeWorld;
-import com.infernalsuite.aswm.api.world.properties.SlimeProperties;
-import com.infernalsuite.aswm.api.world.properties.SlimePropertyMap;
+import com.infernalsuite.asp.api.AdvancedSlimePaperAPI;
+import com.infernalsuite.asp.api.loaders.SlimeLoader;
+import com.infernalsuite.asp.api.world.SlimeWorld;
+import com.infernalsuite.asp.api.world.SlimeWorldInstance;
+import com.infernalsuite.asp.api.world.properties.SlimeProperties;
+import com.infernalsuite.asp.api.world.properties.SlimePropertyMap;
+import com.infernalsuite.asp.loaders.file.FileLoader;
 import net.rustcore.duel.DuelsPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -46,9 +50,11 @@ public class SlimeArenaManager {
      * @return true if ASWM was found and the template loaded successfully
      */
     public boolean init() {
-        // Check if ASWM plugin is present
-        if (Bukkit.getPluginManager().getPlugin("SlimeWorldManager") == null) {
-            plugin.getLogger().warning("SlimeWorldManager not found — falling back to WorldEdit schematic pasting.");
+        // Check if ASP is available via its API service (works regardless of plugin name)
+        try {
+            Class.forName("com.infernalsuite.asp.api.AdvancedSlimePaperAPI");
+        } catch (ClassNotFoundException e) {
+            plugin.getLogger().warning("AdvancedSlimePaper not found — falling back to WorldEdit schematic pasting.");
             return false;
         }
 
@@ -64,14 +70,14 @@ public class SlimeArenaManager {
             return false;
         }
 
-        // Get the configured loader and template name
+        // Get the configured template name and initialize file loader
         templateWorldName = plugin.getConfig().getString("arenas.template-world", "duel_template");
-        String loaderType = plugin.getConfig().getString("arenas.slime-loader", "file");
+        String slimeDir = plugin.getConfig().getString("arenas.slime-directory", "slime_worlds");
 
         try {
-            loader = aswmApi.getLoader(loaderType);
-        } catch (IllegalArgumentException e) {
-            plugin.getLogger().severe("Unknown ASWM loader type: " + loaderType);
+            loader = new FileLoader(new File(slimeDir));
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to initialize ASP file loader at '" + slimeDir + "'", e);
             return false;
         }
 
@@ -116,8 +122,8 @@ public class SlimeArenaManager {
                 // Load the world on the main thread
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     try {
-                        aswmApi.loadWorld(cloned, true);
-                        World world = Bukkit.getWorld(worldName);
+                        SlimeWorldInstance instance = aswmApi.loadWorld(cloned, true);
+                        World world = instance.getBukkitWorld();
                         if (world == null) {
                             future.completeExceptionally(
                                     new RuntimeException("Cloned world '" + worldName + "' not found after loading"));
@@ -186,7 +192,7 @@ public class SlimeArenaManager {
      * Destroy all active duel worlds. Call from onDisable().
      */
     public void destroyAll() {
-        for (UUID duelId : activeWorlds.keySet()) {
+        for (UUID duelId : new ArrayList<>(activeWorlds.keySet())) {
             String worldName = activeWorlds.remove(duelId);
             if (worldName != null) {
                 World world = Bukkit.getWorld(worldName);
