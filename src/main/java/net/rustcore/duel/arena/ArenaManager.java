@@ -1,34 +1,19 @@
 package net.rustcore.duel.arena;
 
 import net.rustcore.duel.DuelsPlugin;
-import com.sk89q.worldedit.EditSession;
-import com.sk89q.worldedit.WorldEdit;
-import com.sk89q.worldedit.bukkit.BukkitAdapter;
-import com.sk89q.worldedit.extent.clipboard.Clipboard;
-import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
-import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
-import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
-import com.sk89q.worldedit.function.operation.Operation;
-import com.sk89q.worldedit.function.operation.Operations;
-import com.sk89q.worldedit.math.BlockVector3;
-import com.sk89q.worldedit.session.ClipboardHolder;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 
 /**
  * Manages arena templates and allocates/deallocates live arena instances.
- * Each duel gets its own {@link ActiveArena} pasted at a unique world position —
- * multiple duels can use the same schematic template simultaneously.
+ * Each duel gets its own {@link ActiveArena} in a dedicated SlimeWorld.
+ * Multiple duels can use the same template simultaneously.
  *
  * <p>Spawn points are divided into two teams (A and B).
  * Each team may have multiple spawn options; one is chosen randomly per round.
@@ -44,14 +29,7 @@ public class ArenaManager {
     /** Currently active arena instances (duelId -> ActiveArena). */
     private final Map<UUID, ActiveArena> activeArenas = new ConcurrentHashMap<>();
 
-    /** Monotonically increasing slot index — gives each duel a unique X offset. */
-    private final AtomicInteger slotCounter = new AtomicInteger(0);
-
     private final PlacedBlockTracker blockTracker = new PlacedBlockTracker();
-
-    private String arenaWorldName;
-    private int arenaSpacing;
-    private int pasteOriginX, pasteOriginY, pasteOriginZ;
 
     /** Global default spawn offsets used when an arena has no per-arena section. */
     private final List<SpawnOffset> globalTeamA = new ArrayList<>();
@@ -67,44 +45,22 @@ public class ArenaManager {
         templates.clear();
         globalTeamA.clear();
         globalTeamB.clear();
-        // Do NOT reset slotCounter — reloading should not reuse the same world slots
-        // while duels that were pasted there may still be active.
 
         FileConfiguration config = plugin.getConfig();
-        arenaWorldName = config.getString("general.arena-world", "duels_world");
-        arenaSpacing = config.getInt("arenas.arena-spacing", 200);
-        pasteOriginX = config.getInt("arenas.paste-origin.x", 1000);
-        pasteOriginY = config.getInt("arenas.paste-origin.y", 80);
-        pasteOriginZ = config.getInt("arenas.paste-origin.z", 1000);
 
         // Load global default spawn points (team-a / team-b keys, or flat legacy list)
         loadGlobalSpawnPoints(config);
-
-        File schemFolder = new File(plugin.getDataFolder(),
-                config.getString("arenas.schematics-folder", "schematics"));
-        if (!schemFolder.exists()) {
-            schemFolder.mkdirs();
-            plugin.getLogger().info("Created schematics folder at " + schemFolder.getPath());
-            return;
-        }
 
         ConfigurationSection arenaSection = config.getConfigurationSection("arena-list");
         if (arenaSection == null) return;
 
         for (String arenaId : arenaSection.getKeys(false)) {
-            String schemName   = arenaSection.getString(arenaId + ".schematic");
             String displayName = arenaSection.getString(arenaId + ".display-name", arenaId);
             boolean enabled    = arenaSection.getBoolean(arenaId + ".enabled", true);
 
             if (!enabled) continue;
 
-            File schemFile = new File(schemFolder, schemName);
-            if (!schemFile.exists()) {
-                plugin.getLogger().warning("Schematic not found for arena '" + arenaId + "': " + schemFile.getPath());
-                continue;
-            }
-
-            Arena arena = new Arena(arenaId, displayName, schemFile);
+            Arena arena = new Arena(arenaId, displayName);
 
             // Per-arena spawn-points override global defaults
             ConfigurationSection spawnSection = arenaSection.getConfigurationSection(arenaId + ".spawn-points");
@@ -131,7 +87,7 @@ public class ArenaManager {
             ConfigurationSection polySection = arenaSection.getConfigurationSection(arenaId + ".polygon");
             if (polySection != null) {
                 try {
-                    CustomPoly2D polygon = CustomPoly2D.fromConfig(polySection, null); // null world during template load
+                    CustomPoly2D polygon = CustomPoly2D.fromConfig(polySection, null);
                     arena.setTemplatePolygon(polygon);
                     plugin.getLogger().info("Arena '" + arenaId + "' loaded polygon with "
                             + polygon.getPoints().size() + " points.");
@@ -221,10 +177,8 @@ public class ArenaManager {
     // -------------------------------------------------------------------------
 
     /**
-     * Pick a random enabled template, paste it at a fresh world slot, and return
+     * Pick a random enabled template, load it into a fresh SlimeWorld, and return
      * a fully-prepared {@link ActiveArena} ready for a duel.
-     *
-     * Must be called from the main thread; the paste itself runs async.
      *
      * @param duelId UUID of the duel that will own this instance
      * @return CompletableFuture that completes with the ActiveArena on the main thread
@@ -254,97 +208,14 @@ public class ArenaManager {
         }
 
         SlimeArenaManager slime = plugin.getSlimeArenaManager();
-        if (slime != null && slime.isAvailable()) {
-            return allocateSlimeArena(duelId, template);
-        } else {
-            return allocateSchematicArena(duelId, template);
-        }
-    }
-
-    private CompletableFuture<ActiveArena> allocateSchematicArena(UUID duelId, Arena template) {
-        // Allocate a slot on the main thread so the counter stays consistent.
-        int slot = slotCounter.getAndIncrement();
-        int pasteX = pasteOriginX + (slot * arenaSpacing);
-        int pasteZ = pasteOriginZ;
-
-        // Resolve the World on the main thread before entering the async block
-        World world = Bukkit.getWorld(arenaWorldName);
-        if (world == null) {
+        if (slime == null || !slime.isAvailable()) {
             return CompletableFuture.failedFuture(
-                    new RuntimeException("Arena world not found: " + arenaWorldName));
+                    new IllegalStateException("SlimeArenaManager is not available"));
         }
 
         CompletableFuture<ActiveArena> result = new CompletableFuture<>();
 
-        CompletableFuture.runAsync(() -> {
-            try {
-                com.sk89q.worldedit.world.World weWorld = BukkitAdapter.adapt(world);
-                BlockVector3 pasteAt = BlockVector3.at(pasteX, pasteOriginY, pasteZ);
-
-                try (ClipboardReader reader = openReader(template)) {
-                    Clipboard clipboard = reader.read();
-                    try (EditSession editSession = WorldEdit.getInstance().newEditSession(weWorld);
-                         ClipboardHolder holder = new ClipboardHolder(clipboard)) {
-                        Operation op = holder.createPaste(editSession)
-                                .to(pasteAt)
-                                .ignoreAirBlocks(false)
-                                .build();
-                        Operations.complete(op);
-                    }
-                }
-
-                // Build the ActiveArena with absolute spawn locations on the main thread.
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    Location origin = new Location(world, pasteX, pasteOriginY, pasteZ);
-                    ActiveArena active = new ActiveArena(template, duelId, origin);
-
-                    for (Location offset : template.getTeamASpawns()) {
-                        active.addTeamASpawn(new Location(
-                                world,
-                                pasteX + offset.getX(),
-                                pasteOriginY + offset.getY(),
-                                pasteZ + offset.getZ(),
-                                offset.getYaw(),
-                                offset.getPitch()
-                        ));
-                    }
-                    for (Location offset : template.getTeamBSpawns()) {
-                        active.addTeamBSpawn(new Location(
-                                world,
-                                pasteX + offset.getX(),
-                                pasteOriginY + offset.getY(),
-                                pasteZ + offset.getZ(),
-                                offset.getYaw(),
-                                offset.getPitch()
-                        ));
-                    }
-
-                    // Attach polygon boundary (shifted to absolute coordinates)
-                    if (template.getTemplatePolygon() != null) {
-                        CustomPoly2D shifted = template.getTemplatePolygon().shift(pasteX, pasteZ, world);
-                        active.setPolygon(shifted);
-                    }
-
-                    activeArenas.put(duelId, active);
-                    plugin.getLogger().info("Allocated arena '" + template.getId()
-                            + "' slot " + slot + " for duel " + duelId);
-                    result.complete(active);
-                });
-
-            } catch (Exception e) {
-                plugin.getLogger().log(Level.SEVERE, "Failed to allocate arena for duel " + duelId, e);
-                result.completeExceptionally(e);
-            }
-        });
-
-        return result;
-    }
-
-    private CompletableFuture<ActiveArena> allocateSlimeArena(UUID duelId, Arena template) {
-        CompletableFuture<ActiveArena> result = new CompletableFuture<>();
-
-        plugin.getSlimeArenaManager().createDuelWorld(duelId).thenAccept(world -> {
-            // createDuelWorld completes on main thread, but wrap in runTask for safety
+        slime.createDuelWorld(duelId).thenAccept(world -> {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 Location origin = new Location(world, 0, 0, 0);
                 ActiveArena active = new ActiveArena(template, duelId, origin);
@@ -370,7 +241,7 @@ public class ArenaManager {
                 }
 
                 activeArenas.put(duelId, active);
-                plugin.getLogger().info("Allocated ASWM arena '" + template.getId()
+                plugin.getLogger().info("Allocated arena '" + template.getId()
                         + "' world '" + world.getName() + "' for duel " + duelId);
                 result.complete(active);
             });
@@ -387,50 +258,12 @@ public class ArenaManager {
     // -------------------------------------------------------------------------
 
     /**
-     * Re-paste the schematic for an active arena (inter-round reset).
-     * Does NOT deallocate the slot — the duel continues.
+     * Restore the arena between rounds — revert player-placed blocks.
+     * The SlimeWorld stays alive; no re-clone needed.
      */
     public CompletableFuture<Void> restoreArena(ActiveArena active) {
-        UUID duelId = active.getDuelId();
-
-        SlimeArenaManager slime = plugin.getSlimeArenaManager();
-        if (slime != null && slime.isAvailable()) {
-            // ASWM path: just revert player-placed blocks, world stays alive
-            blockTracker.revertAndClear(duelId);
-            return CompletableFuture.completedFuture(null);
-        } else {
-            // WorldEdit path: re-paste the schematic (existing logic)
-            return restoreSchematicArena(active);
-        }
-    }
-
-    private CompletableFuture<Void> restoreSchematicArena(ActiveArena active) {
-        UUID duelId = active.getDuelId();
-
-        return CompletableFuture.runAsync(() -> {
-            try {
-                Location origin = active.getPasteOrigin();
-                com.sk89q.worldedit.world.World weWorld = BukkitAdapter.adapt(origin.getWorld());
-                BlockVector3 pasteAt = BlockVector3.at(origin.getBlockX(), origin.getBlockY(), origin.getBlockZ());
-
-                try (ClipboardReader reader = openReader(active.getTemplate())) {
-                    Clipboard clipboard = reader.read();
-                    try (EditSession editSession = WorldEdit.getInstance().newEditSession(weWorld);
-                         ClipboardHolder holder = new ClipboardHolder(clipboard)) {
-                        Operation op = holder.createPaste(editSession)
-                                .to(pasteAt)
-                                .ignoreAirBlocks(false)
-                                .build();
-                        Operations.complete(op);
-                    }
-                }
-
-                blockTracker.clearDuel(duelId);
-
-            } catch (Exception e) {
-                plugin.getLogger().log(Level.SEVERE, "Failed to restore arena for duel " + duelId, e);
-            }
-        });
+        blockTracker.revertAndClear(active.getDuelId());
+        return CompletableFuture.completedFuture(null);
     }
 
     // -------------------------------------------------------------------------
@@ -444,13 +277,8 @@ public class ArenaManager {
         if (active == null) return;
         activeArenas.remove(active.getDuelId());
         blockTracker.clearDuel(active.getDuelId());
-
-        SlimeArenaManager slime = plugin.getSlimeArenaManager();
-        if (slime != null && slime.isAvailable()) {
-            slime.destroyDuelWorld(active.getDuelId());
-        }
-
-        plugin.getLogger().info("Deallocated arena slot for duel " + active.getDuelId());
+        plugin.getSlimeArenaManager().destroyDuelWorld(active.getDuelId());
+        plugin.getLogger().info("Deallocated arena for duel " + active.getDuelId());
     }
 
     // -------------------------------------------------------------------------
@@ -461,13 +289,6 @@ public class ArenaManager {
         if (templates.isEmpty()) return null;
         List<Arena> list = new ArrayList<>(templates.values());
         return list.get(new Random().nextInt(list.size()));
-    }
-
-    private ClipboardReader openReader(Arena arena) throws Exception {
-        File file = arena.getSchematicFile();
-        ClipboardFormat format = ClipboardFormats.findByFile(file);
-        if (format == null) throw new IOException("Unknown schematic format: " + file.getName());
-        return format.getReader(new FileInputStream(file));
     }
 
     private static double toDouble(Object value, double fallback) {
@@ -484,7 +305,6 @@ public class ArenaManager {
     public ActiveArena getActiveArena(UUID duelId) { return activeArenas.get(duelId); }
     public Collection<ActiveArena> getAllActiveArenas() { return activeArenas.values(); }
     public PlacedBlockTracker getBlockTracker() { return blockTracker; }
-    public String getArenaWorldName() { return arenaWorldName; }
 
     public void reload() { load(); }
 }
