@@ -54,7 +54,7 @@ public class SlimeArenaManager {
         try {
             Class.forName("com.infernalsuite.asp.api.AdvancedSlimePaperAPI");
         } catch (ClassNotFoundException e) {
-            plugin.getLogger().warning("AdvancedSlimePaper not found — falling back to WorldEdit schematic pasting.");
+            plugin.getLogger().severe("AdvancedSlimePaper API not found on the classpath.");
             return false;
         }
 
@@ -66,7 +66,7 @@ public class SlimeArenaManager {
         }
 
         if (aswmApi == null) {
-            plugin.getLogger().warning("ASWM API instance is null — falling back to WorldEdit.");
+            plugin.getLogger().severe("ASWM API instance is null — cannot initialize arena system.");
             return false;
         }
 
