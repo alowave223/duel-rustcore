@@ -34,6 +34,7 @@ public class KitMenu {
     private int infoSlot;
     private int draftTimeLimit;
     private boolean loaded = false;
+    private final DuelsPlugin plugin;
 
     // Available items: slot -> MenuEntry
     private final Map<Integer, MenuEntry> menuItems = new LinkedHashMap<>();
@@ -49,6 +50,7 @@ public class KitMenu {
     public final NamespacedKey KEY_SLOT_INDEX;
 
     public KitMenu(DuelsPlugin plugin) {
+        this.plugin = plugin;
         this.KEY_MENU_TYPE = new NamespacedKey(plugin, "kit_menu_type");
         this.KEY_SLOT_INDEX = new NamespacedKey(plugin, "kit_slot_index");
     }
@@ -130,8 +132,8 @@ public class KitMenu {
                     ItemBuilder displayBuilder = new ItemBuilder(displayItem);
                     if (max > 0) {
                         displayBuilder.addLore(" ");
-                        displayBuilder.addLore("<gray>Max picks: <white>" + max);
-                        displayBuilder.addLore("<gray>Amount per pick: <white>" + amount);
+                        displayBuilder.addLore(plugin.getMessage("max-picks") + max);
+                        displayBuilder.addLore(plugin.getMessage("amount-per-pick") + amount);
                     }
                     displayBuilder.pdc(KEY_MENU_TYPE, "item");
                     displayBuilder.pdc(KEY_SLOT_INDEX, slot);

@@ -67,8 +67,8 @@ public class DuelCommand implements TabExecutor {
         DuelMode mode = plugin.getModeManager().getMode(modeId);
         if (mode == null) {
             player.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                    .append(CC.parse("<red>Unknown mode: <white><modeId>. Available: <modes>",
-                            "modeId", modeId,
+                    .append(CC.parse("<red>Unknown mode: <white><mode_id>. Available: <modes>",
+                            "mode_id", modeId,
                             "modes", plugin.getModeManager().getAllModes().stream()
                                     .map(DuelMode::getId).collect(Collectors.joining(", ")))));
             return true;
@@ -147,7 +147,7 @@ public class DuelCommand implements TabExecutor {
         DuelMode mode = plugin.getModeManager().getMode(modeId);
         if (mode == null) {
             player.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                    .append(CC.parse("<red>Unknown mode: <modeId>", "modeId", modeId)));
+                    .append(CC.parse("<red>Unknown mode: <mode_id>", "mode_id", modeId)));
             return true;
         }
 
@@ -275,7 +275,7 @@ public class DuelCommand implements TabExecutor {
         DuelMode mode = plugin.getModeManager().getMode(modeId);
         if (mode == null) {
             sender.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                    .append(CC.parse("<red>Unknown mode: <modeId>", "modeId", modeId)));
+                    .append(CC.parse("<red>Unknown mode: <mode_id>", "mode_id", modeId)));
             return true;
         }
 
@@ -362,13 +362,24 @@ public class DuelCommand implements TabExecutor {
         } else if (args.length == 3) {
             String sub = args[0].toLowerCase();
             if (sub.equals("queue") || sub.equals("challenge")) {
-                completions.addAll(List.of("1", "3", "5"));
+                completions.addAll(plugin.getModeManager().getAllModes().stream()
+                    .map(DuelMode::getId)
+                    .toList());
             }
             if (sub.equals("forcestart")) {
                 Bukkit.getOnlinePlayers().forEach(p -> completions.add(p.getName()));
             }
             if (sub.equals("stats")) {
                 Bukkit.getOnlinePlayers().forEach(p -> completions.add(p.getName()));
+            }
+        } else if (args.length == 4) {
+            String sub = args[0].toLowerCase();
+            if (sub.equals("queue") || sub.equals("challenge") || sub.equals("forcestart")) {
+                String modeId = args[1].toLowerCase();
+                DuelMode mode = plugin.getModeManager().getMode(modeId);
+                if (mode != null) {
+                    mode.getAvailableBestOf().forEach(bo -> completions.add(String.valueOf(bo)));
+                }
             }
         }
 

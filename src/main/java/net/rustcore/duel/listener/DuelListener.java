@@ -4,6 +4,9 @@ import net.rustcore.duel.DuelsPlugin;
 import net.rustcore.duel.arena.CustomPoly2D;
 import net.rustcore.duel.duel.Duel;
 import net.rustcore.duel.duel.DuelState;
+import net.rustcore.duel.kit.KitMenu;
+import net.rustcore.duel.mode.DuelMode;
+import net.rustcore.duel.mode.impl.KitBuilderMode;
 import net.rustcore.duel.modification.Modification;
 
 import java.util.EnumSet;
@@ -355,11 +358,23 @@ public class DuelListener implements Listener {
 
         DuelState state = duel.getState();
         // Lock inventory between states where players shouldn't be able to move items
-        if (state == DuelState.COUNTDOWN
-                || state == DuelState.ROUND_ENDING
-                || state == DuelState.ENDED) {
-            event.setCancelled(true);
+
+        DuelMode mode = duel.getMode();
+        if (mode instanceof KitBuilderMode kitBuilderMode) {
+            if (state == DuelState.DRAFTING || state == DuelState.COUNTDOWN) {
+                KitMenu kitMenu = kitBuilderMode.getKitMenu();
+                if (!kitMenu.isKitMenu(event.getView().getTopInventory())) {
+                    return;
+                } else {
+                    event.setCancelled(true);
+                }
+            }
+        } else {
+            if (state == DuelState.COUNTDOWN
+                    || state == DuelState.ROUND_ENDING
+                    || state == DuelState.ENDED) {
+                event.setCancelled(true);
+            }
         }
-        // DRAFTING is handled by KitMenuListener; ACTIVE and PREPARING are intentionally open.
     }
 }

@@ -16,6 +16,7 @@ import org.bukkit.scheduler.BukkitTask;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 /**
  * Represents an active duel between players.
@@ -338,16 +339,24 @@ public class Duel {
     }
 
     private void broadcastScores() {
-        StringBuilder sb = new StringBuilder("<gray>Scores: ");
-        boolean first = true;
-        for (UUID pid : playerIds) {
-            if (!first) sb.append(" <dark_gray>| ");
-            Player p = Bukkit.getPlayer(pid);
-            String name = p != null ? p.getName() : "???";
-            sb.append("<white>").append(name).append(" <gray>").append(scores.getOrDefault(pid, 0));
-            first = false;
-        }
-        broadcast(CC.parse(sb.toString()));
+        String prefix = plugin.getMessage("scores_prefix");
+        String playerFormat = plugin.getMessage("player_score_format");
+        String separator = plugin.getMessage("scores_separator");
+        String unknownPlayer = plugin.getMessage("unknown-player");
+
+        String joinedScores = playerIds.stream()
+            .<String>map(pid -> { // <--- Explicitly tell the map to return a String
+                Player p = Bukkit.getPlayer(pid);
+                String name = (p != null) ? p.getName() : unknownPlayer;
+                int score = scores.getOrDefault(pid, 0);
+
+                return playerFormat
+                        .replace("<player>", name)
+                        .replace("<score>", String.valueOf(score));
+            })
+        .collect(Collectors.joining(separator));
+
+        broadcast(CC.parse(prefix + joinedScores));
     }
 
     /**

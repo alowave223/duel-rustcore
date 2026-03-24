@@ -65,13 +65,11 @@ arena-list:
     # Points are "x,z" pairs. minY/maxY define the vertical bounds.
     # If omitted, no polygon boundary checking is applied.
     polygon:
-      min-y: 60
-      max-y: 120
+      min-y: -64
+      max-y: 319
       points:
-        - "-25,-25"
-        - "25,-25"
-        - "25,25"
-        - "-25,25"
+        - "18,75"
+        - "18,25"
 
 # ============================================================
 # Lobby Hotbar Items
@@ -214,3 +212,9 @@ messages:
   only-players: "<red>Only players can use this command."
   cant-duel-self: "<red>You can't duel yourself!"
   bestof-must-be-odd: "<red>best-of must be an odd number (1, 3, 5...)."
+  scores_prefix: "<gray>Scores: "
+  scores_separator: " <dark_gray>| "
+  unknown_player: "???"
+  player_score_format: "<white><player> <gray><score>"
+  max-picks: "<gray>Max picks: <white>"
+  amount-per-pick: "<gray>Amount per pick: <white>"
