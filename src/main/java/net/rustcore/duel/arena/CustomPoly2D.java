@@ -19,7 +19,7 @@ import java.util.List;
  */
 public class CustomPoly2D {
 
-    /** Lightweight 2D integer point — avoids dependency on WorldEdit's BlockVector2. */
+    /** Lightweight 2D integer point. */
     public record Point(int x, int z) {}
 
     private final List<Point> points;
@@ -174,20 +174,4 @@ public class CustomPoly2D {
         return new CustomPoly2D(points, minY, maxY, world);
     }
 
-    /**
-     * Create a new CustomPoly2D with all point coordinates shifted by the given offset.
-     * Used when cloning a template polygon into a live arena world.
-     *
-     * @param offsetX X offset to add to all points
-     * @param offsetZ Z offset to add to all points
-     * @param newWorld the new world for the shifted polygon
-     * @return a new CustomPoly2D with shifted coordinates
-     */
-    public CustomPoly2D shift(int offsetX, int offsetZ, World newWorld) {
-        List<Point> shifted = new ArrayList<>(points.size());
-        for (Point p : points) {
-            shifted.add(new Point(p.x() + offsetX, p.z() + offsetZ));
-        }
-        return new CustomPoly2D(shifted, minY, maxY, newWorld);
-    }
 }
