@@ -1,5 +1,7 @@
 package net.rustcore.duel.mode.impl;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.rustcore.duel.DuelsPlugin;
 import net.rustcore.duel.duel.Duel;
 import net.rustcore.duel.kit.KitMenu;
@@ -52,9 +54,10 @@ public class KitBuilderMode implements DuelMode {
     private ItemStack defaultBoots;
     private ItemStack defaultOffhand;
 
-    private static final String META_READY    = "kb_ready";
-    private static final String META_KITS     = "kb_kits";
-    private static final String META_TIMER    = "kb_timer";
+    public static final String META_READY    = "kb_ready";
+    public static final String META_KITS     = "kb_kits";
+    public static final String META_TIMER    = "kb_timer";
+    public static final String META_TITLETIMER_PREFIX = "kb_title_timer_";
 
     public KitBuilderMode(DuelsPlugin plugin) {
         this.plugin = plugin;
@@ -203,6 +206,7 @@ public class KitBuilderMode implements DuelMode {
             player.sendMessage(CC.parse(plugin.getMessage("kit-ready")));
         } else {
             UUID playerId = player.getUniqueId();
+
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 Player p = Bukkit.getPlayer(playerId);
                 if (p == null || !p.isOnline()) return;
@@ -212,7 +216,21 @@ public class KitBuilderMode implements DuelMode {
                     plugin.getLogger().severe("Failed to open kit menu for " + p.getName() + ": " + e.getMessage());
                     p.sendMessage(CC.parse(plugin.getMessage("kit-menu-failed")));
                 }
-            }, 20L);
+            }, 5L);
+
+            Component actionBarMsg = MiniMessage.miniMessage().deserialize("<green>Чтобы открыть меню выбора используйте команду /draftmenu");
+
+            if (duel.getMeta(META_TITLETIMER_PREFIX + player.getUniqueId()) == null) {
+                BukkitTask subTitleTimer = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+                    if (player.isOnline()) {
+                        player.sendActionBar(actionBarMsg);
+                    } else {
+                        cancelTitleTimer(duel, player);
+                    }
+                }, 0L, 35L);
+
+                duel.setMeta(META_TITLETIMER_PREFIX + player.getUniqueId(), subTitleTimer);
+            }
         }
 
         // Schedule draft timeout once per duel round (only on first player setup call)
@@ -265,6 +283,8 @@ public class KitBuilderMode implements DuelMode {
         boolean allReady = duel.getPlayerIds().stream()
                 .allMatch(ready::contains);
 
+        cancelTitleTimer(duel, player);
+        
         if (allReady) {
             cancelDraftTimer(duel);
             duel.startCountdown();
@@ -275,6 +295,16 @@ public class KitBuilderMode implements DuelMode {
         BukkitTask timer = duelMeta(duel, META_TIMER);
         if (timer != null) timer.cancel();
         duel.removeMeta(META_TIMER);
+    }
+
+    public void cancelTitleTimer(Duel duel, Player player) {
+        BukkitTask timer = duelMeta(duel, META_TITLETIMER_PREFIX + player.getUniqueId());
+        if (timer != null) {
+            timer.cancel();
+            player.clearTitle();
+        }
+
+        duel.removeMeta(META_TITLETIMER_PREFIX + player.getUniqueId());
     }
 
     @Override
@@ -294,6 +324,7 @@ public class KitBuilderMode implements DuelMode {
         duel.removeMeta(META_READY);
         duel.removeMeta(META_KITS);
         for (Player player : duel.getPlayers()) {
+            cancelTitleTimer(duel, player);
             kitMenu.removePlayer(player.getUniqueId());
         }
     }

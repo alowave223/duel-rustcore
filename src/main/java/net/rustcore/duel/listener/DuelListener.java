@@ -307,9 +307,8 @@ public class DuelListener implements Listener {
         Duel duel = plugin.getDuelManager().getDuel(player.getUniqueId());
         if (duel == null)
             return;
-
+        
         if (ALLOW_MOVEMENT.contains(duel.getState())) {
-            // For ACTIVE state, enforce polygon boundary if defined
             if (duel.getState() == DuelState.ACTIVE && event.hasChangedPosition() && event.getTo() != null) {
                 CustomPoly2D polygon = duel.getActiveArena().getPolygon();
                 if (polygon != null && !polygon.contains(event.getTo())) {
@@ -317,10 +316,9 @@ public class DuelListener implements Listener {
                 }
             }
             return;
-        }
-
-        if (event.hasChangedPosition()) {
+        } else if (event.hasChangedPosition() && event.getTo() != null) {
             event.setTo(event.getFrom());
+            return;
         }
     }
 
@@ -361,12 +359,10 @@ public class DuelListener implements Listener {
 
         DuelMode mode = duel.getMode();
         if (mode instanceof KitBuilderMode kitBuilderMode) {
-            if (state == DuelState.DRAFTING || state == DuelState.COUNTDOWN) {
+            if (state == DuelState.COUNTDOWN) {
                 KitMenu kitMenu = kitBuilderMode.getKitMenu();
                 if (!kitMenu.isKitMenu(event.getView().getTopInventory())) {
                     return;
-                } else {
-                    event.setCancelled(true);
                 }
             }
         } else {

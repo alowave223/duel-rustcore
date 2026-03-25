@@ -45,6 +45,8 @@ public class KitMenu {
     // Track which inventories belong to kit menus
     private final Set<Inventory> activeMenus = Collections.newSetFromMap(new WeakHashMap<>());
 
+    private final Map<UUID, Inventory> playerInventories = new HashMap<>();
+
     // PDC keys
     public final NamespacedKey KEY_MENU_TYPE;
     public final NamespacedKey KEY_SLOT_INDEX;
@@ -148,8 +150,13 @@ public class KitMenu {
      * Open the kit drafting menu for a player.
      */
     public Inventory open(Player player) {
+        // Remove previous menu for this player to prevent ghost inventories
+        Inventory old = playerInventories.remove(player.getUniqueId());
+        if (old != null) activeMenus.remove(old);
+
         Inventory inv = Bukkit.createInventory(null, menuRows * 9, menuTitle);
         activeMenus.add(inv);
+        playerInventories.put(player.getUniqueId(), inv);
 
         // Fill with filler
         for (int i = 0; i < inv.getSize(); i++) {
@@ -264,10 +271,15 @@ public class KitMenu {
 
     public void removeMenu(Inventory inv) {
         activeMenus.remove(inv);
+        playerInventories.values().removeIf(v -> v.equals(inv));
     }
 
     public boolean isKitMenu(Inventory inv) {
         return activeMenus.contains(inv);
+    }
+
+    public Inventory getPlayerMenu(UUID playerId) {
+        return playerInventories.get(playerId);
     }
 
     public int getDraftTimeLimit() { return draftTimeLimit; }

@@ -7,11 +7,13 @@ import net.rustcore.duel.kit.KitMenu;
 import net.rustcore.duel.mode.DuelMode;
 import net.rustcore.duel.mode.impl.KitBuilderMode;
 
+import java.util.Set;
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -76,19 +78,7 @@ public class KitMenuListener implements Listener {
 
             kitMenu.handleClick(player, slot, topInv);
         } else {
-            // Block all interactions from the bottom inventory that could
-            // move items into or out of the kit menu:
-            // - Shift-click (moves item to top inventory)
-            // - Number key / hotbar swap (swaps with a top-inventory slot)
-            // - Double-click collect (collects matching items from everywhere)
-            // - "Move to other inventory" action
-            InventoryAction action = event.getAction();
-            if (event.isShiftClick()
-                    || event.getHotbarButton() >= 0
-                    || action == InventoryAction.COLLECT_TO_CURSOR
-                    || action == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-                event.setCancelled(true);
-            }
+            event.setCancelled(true);
         }
     }
 
@@ -122,7 +112,7 @@ public class KitMenuListener implements Listener {
     public void onInventoryClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player))
             return;
-        
+
         InventoryCloseEvent.Reason reason = event.getReason();
         if (reason == InventoryCloseEvent.Reason.OPEN_NEW)
             return;
@@ -138,19 +128,23 @@ public class KitMenuListener implements Listener {
         KitMenu kitMenu = kitBuilderMode.getKitMenu();
         if (kitMenu.isKitMenu(event.getInventory())) {
             if (duel.getState() == DuelState.DRAFTING && reason != InventoryCloseEvent.Reason.PLUGIN) {
-                Inventory inv = event.getInventory();
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    // Re-check state after the 1-tick delay: if it transitioned to
-                    // COUNTDOWN or beyond while the menu was closed, don't reopen.
+                Set<UUID> readySet = duel.getMeta(KitBuilderMode.META_READY);
+                if (readySet != null && readySet.contains(player.getUniqueId()))
+                    return;
+
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     Duel currentDuel = plugin.getDuelManager().getDuel(player.getUniqueId());
-                    if (currentDuel != null
-                            && currentDuel.getState() == DuelState.DRAFTING
-                            && kitMenu.isKitMenu(inv)) {
-                        player.openInventory(inv);
+                    if (currentDuel == null || currentDuel.getState() != DuelState.DRAFTING)
+                        return;
+
+                    Inventory current = kitMenu.getPlayerMenu(player.getUniqueId());
+                    if (current != null && kitMenu.isKitMenu(current)) {
+                        player.openInventory(current);
                     }
-                });
+                }, 5L);
             } else {
                 kitMenu.removeMenu(event.getInventory());
+                kitMenu.removePlayer(player.getUniqueId());
             }
         }
     }

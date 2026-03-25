@@ -115,7 +115,7 @@ public class Duel {
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 player.setAllowFlight(false);
                 player.setFlying(false);
-            }, 1L);
+            }, 2L);
 
             // Let the mode set up the player (equip defaults, open kit menu, etc.)
             mode.onRoundSetup(this, player);

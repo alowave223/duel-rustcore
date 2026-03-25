@@ -1,7 +1,10 @@
 package net.rustcore.duel.command;
 
 import net.rustcore.duel.DuelsPlugin;
+import net.rustcore.duel.duel.Duel;
+import net.rustcore.duel.duel.DuelState;
 import net.rustcore.duel.mode.DuelMode;
+import net.rustcore.duel.mode.impl.KitBuilderMode;
 import net.rustcore.duel.stats.PlayerStats;
 import net.rustcore.duel.util.CC;
 import org.bukkit.Bukkit;
@@ -9,6 +12,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -39,6 +43,7 @@ public class DuelCommand implements TabExecutor {
             case "stats" -> handleStats(sender, args);
             case "reload" -> handleReload(sender);
             case "forcestart" -> handleForceStart(sender, args);
+            case "draftmenu" -> handleOpenKitMenu(sender);
             default -> {
                 // Treat as a player name for challenge
                 if (sender instanceof Player) {
@@ -49,6 +54,49 @@ public class DuelCommand implements TabExecutor {
                 yield true;
             }
         };
+    }
+
+    private boolean handleOpenKitMenu(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(CC.parse(plugin.getMessage("only-players")));
+            return true;
+        }
+
+        Duel duel = plugin.getDuelManager().getDuel(player.getUniqueId());
+        if (duel == null) {
+            player.sendMessage(CC.parse(plugin.getMessage("prefix"))
+                    .append(CC.parse("<red>Вы не в дуели!")));
+            return true;
+        }
+
+        if (!(duel.getMode() instanceof KitBuilderMode kitBuilderMode))
+            return true;
+
+        if (duel.getState() != DuelState.DRAFTING) {
+            player.sendMessage(CC.parse(plugin.getMessage("prefix"))
+                    .append(CC.parse("<red>Вы не можете открыть меню сейчас!")));
+            return true;
+        }
+
+        Inventory draftInv = kitBuilderMode.getKitMenu().getPlayerMenu(player.getUniqueId());
+
+        if (draftInv != null) {
+            player.openInventory(draftInv);
+            return true;
+        } else {
+            Set<UUID> readySet = duel.getMeta(KitBuilderMode.META_READY);
+
+            if (readySet == null) {
+                return true;
+            } else {
+                if (!readySet.contains(player.getUniqueId())) {
+                    kitBuilderMode.getKitMenu().open(player);
+                    return true;
+                }
+            }
+
+            return true;
+        }
     }
 
     private boolean handleQueue(CommandSender sender, String[] args) {
