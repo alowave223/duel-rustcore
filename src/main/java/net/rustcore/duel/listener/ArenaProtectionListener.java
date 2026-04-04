@@ -67,48 +67,50 @@ public class ArenaProtectionListener implements Listener {
             return;
         }
 
+        // Allow breaking any block inside the polygon (both player-placed and arena-original)
+        // Clean up tracker if it was player-placed
         PlacedBlockTracker tracker = plugin.getArenaManager().getBlockTracker();
-        if (!tracker.isPlacedBlock(duel.getId(), event.getBlock())) {
-            event.setCancelled(true);
-            return;
-        }
-
         tracker.removeBlock(duel.getId(), event.getBlock());
     }
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityExplode(EntityExplodeEvent event) {
         PlacedBlockTracker tracker = plugin.getArenaManager().getBlockTracker();
-        // O(blocks × duels) → O(blocks): single tracker scan per block
-        event.blockList().removeIf(block -> !tracker.isPlacedByAnyDuelAndRemove(block));
-        // Also filter out blocks outside any active arena's polygon
+        // Allow blocks inside any active arena polygon, remove those outside
         event.blockList().removeIf(block -> {
+            boolean insideAnyArena = false;
             for (ActiveArena arena : plugin.getArenaManager().getAllActiveArenas()) {
                 CustomPoly2D poly = arena.getPolygon();
                 if (poly != null && poly.getWorld() != null
                         && poly.getWorld().equals(block.getWorld())
-                        && !poly.contains(block.getLocation())) {
-                    return true; // Remove from explosion list
+                        && poly.contains(block.getLocation())) {
+                    insideAnyArena = true;
+                    break;
                 }
             }
-            return false;
+            if (!insideAnyArena) return true; // Remove from explosion - outside all arenas
+            // Clean up tracker if was player-placed
+            tracker.isPlacedByAnyDuelAndRemove(block);
+            return false; // Keep in explosion list - inside arena
         });
     }
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onBlockExplode(BlockExplodeEvent event) {
         PlacedBlockTracker tracker = plugin.getArenaManager().getBlockTracker();
-        event.blockList().removeIf(block -> !tracker.isPlacedByAnyDuelAndRemove(block));
-        // Also filter out blocks outside any active arena's polygon
         event.blockList().removeIf(block -> {
+            boolean insideAnyArena = false;
             for (ActiveArena arena : plugin.getArenaManager().getAllActiveArenas()) {
                 CustomPoly2D poly = arena.getPolygon();
                 if (poly != null && poly.getWorld() != null
                         && poly.getWorld().equals(block.getWorld())
-                        && !poly.contains(block.getLocation())) {
-                    return true;
+                        && poly.contains(block.getLocation())) {
+                    insideAnyArena = true;
+                    break;
                 }
             }
+            if (!insideAnyArena) return true;
+            tracker.isPlacedByAnyDuelAndRemove(block);
             return false;
         });
     }

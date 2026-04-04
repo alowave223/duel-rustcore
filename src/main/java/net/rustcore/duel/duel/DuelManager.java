@@ -4,8 +4,12 @@ import net.rustcore.duel.DuelsPlugin;
 import net.rustcore.duel.mode.DuelMode;
 import net.rustcore.duel.util.CC;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Set;
@@ -28,8 +32,14 @@ public class DuelManager {
     // Duel requests: targetUUID -> DuelRequest
     private final Map<UUID, DuelRequest> pendingRequests = new ConcurrentHashMap<>();
 
+    // Ranked preference: playerId -> isRanked (default false = unranked)
+    private final Map<UUID, Boolean> rankedPreference = new ConcurrentHashMap<>();
+    private File rankedFile;
+    private YamlConfiguration rankedConfig;
+
     public DuelManager(DuelsPlugin plugin) {
         this.plugin = plugin;
+        loadRankedPreferences();
     }
 
     /**
@@ -42,21 +52,27 @@ public class DuelManager {
             return;
         }
 
-        DuelQueue.QueueMatch match = queue.addPlayer(player.getUniqueId(), modeId, bestOf);
+        // Build queue key with ranked/unranked suffix for pool separation
+        boolean ranked = isRanked(player.getUniqueId());
+        String queueKey = modeId + (ranked ? ":ranked" : ":unranked");
+
+        DuelQueue.QueueMatch match = queue.addPlayer(player.getUniqueId(), queueKey, bestOf);
 
         if (match != null) {
-            // Match found - create duel
+            // Match found - create duel (use original modeId without suffix)
             Player player1 = Bukkit.getPlayer(match.player1());
             Player player2 = Bukkit.getPlayer(match.player2());
 
             if (player1 != null && player2 != null) {
-                createDuel(match.modeId(), List.of(player1, player2), match.bestOf());
+                createDuel(modeId, List.of(player1, player2), match.bestOf());
             }
         } else {
             DuelMode mode = plugin.getModeManager().getMode(modeId);
             String modeName = mode != null ? mode.getDisplayName() : modeId;
+            String rankLabel = ranked ? " <yellow>(Ranked)" : " <gray>(Unranked)";
             player.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                    .append(CC.parse(plugin.getMessage("queue-joined"), "{mode}", modeName)));
+                    .append(CC.parse(plugin.getMessage("queue-joined"), "{mode}", modeName))
+                    .append(CC.parse(rankLabel)));
         }
     }
 
@@ -68,6 +84,22 @@ public class DuelManager {
             player.sendMessage(CC.parse(plugin.getMessage("prefix"))
                     .append(CC.parse(plugin.getMessage("queue-left"))));
         }
+    }
+
+    /**
+     * Forfeit an active duel. The player loses and their opponent wins.
+     */
+    public void forfeitDuel(Player player) {
+        Duel duel = getDuel(player.getUniqueId());
+        if (duel == null) {
+            player.sendMessage(CC.parse(plugin.getMessage("prefix"))
+                    .append(CC.parse(plugin.getMessage("not-in-duel"))));
+            return;
+        }
+
+        player.sendMessage(CC.parse(plugin.getMessage("prefix"))
+                .append(CC.parse(plugin.getMessage("duel-forfeited"))));
+        duel.forceEnd(player.getUniqueId());
     }
 
     /**
@@ -264,6 +296,54 @@ public class DuelManager {
         Duel duel = getDuel(playerId);
         if (duel != null) {
             duel.forceEnd(playerId);
+        }
+    }
+
+    // ── Ranked preference ──────────────────────────────────────────
+
+    public boolean isRanked(UUID playerId) {
+        return rankedPreference.getOrDefault(playerId, false);
+    }
+
+    public void setRanked(UUID playerId, boolean ranked) {
+        rankedPreference.put(playerId, ranked);
+        saveRankedAsync();
+    }
+
+    public void toggleRanked(UUID playerId) {
+        setRanked(playerId, !isRanked(playerId));
+    }
+
+    private void loadRankedPreferences() {
+        rankedFile = new File(plugin.getDataFolder(), "ranked_preferences.yml");
+        if (rankedFile.exists()) {
+            rankedConfig = YamlConfiguration.loadConfiguration(rankedFile);
+            ConfigurationSection section = rankedConfig.getConfigurationSection("players");
+            if (section != null) {
+                for (String key : section.getKeys(false)) {
+                    try {
+                        rankedPreference.put(UUID.fromString(key), section.getBoolean(key));
+                    } catch (IllegalArgumentException ignored) {}
+                }
+            }
+        } else {
+            rankedConfig = new YamlConfiguration();
+        }
+    }
+
+    private void saveRankedAsync() {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, this::saveRankedSync);
+    }
+
+    public void saveRankedSync() {
+        if (rankedConfig == null || rankedFile == null) return;
+        for (Map.Entry<UUID, Boolean> entry : rankedPreference.entrySet()) {
+            rankedConfig.set("players." + entry.getKey().toString(), entry.getValue());
+        }
+        try {
+            rankedConfig.save(rankedFile);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Failed to save ranked preferences: " + e.getMessage());
         }
     }
 

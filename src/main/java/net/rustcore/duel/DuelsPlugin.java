@@ -3,6 +3,7 @@ package net.rustcore.duel;
 import net.rustcore.duel.arena.ArenaManager;
 import net.rustcore.duel.arena.SlimeArenaManager;
 import net.rustcore.duel.command.DuelCommand;
+import net.rustcore.duel.command.HubCommand;
 import net.rustcore.duel.placeholder.DuelsExpansion;
 import net.rustcore.duel.duel.DuelManager;
 import net.rustcore.duel.listener.ArenaProtectionListener;
@@ -65,6 +66,7 @@ public class DuelsPlugin extends JavaPlugin {
         DuelCommand duelCommand = new DuelCommand(this);
         getCommand("duel").setExecutor(duelCommand);
         getCommand("duel").setTabCompleter(duelCommand);
+        getCommand("hub").setExecutor(new HubCommand(this));
 
         // Register BungeeCord plugin messaging channel
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
@@ -80,9 +82,12 @@ public class DuelsPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Save all stats
+        // Save all stats and ranked preferences
         if (statsManager != null) {
             statsManager.saveAll();
+        }
+        if (duelManager != null) {
+            duelManager.saveRankedSync();
         }
 
         if (slimeArenaManager != null) {

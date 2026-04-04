@@ -16,6 +16,10 @@ commands:
     description: Main duel command
     usage: /<command> <subcommand>
     aliases: [ duels ]
+  hub:
+    description: Return to the hub server
+    usage: /<command>
+    aliases: [ lobby, spawn ]
 
 permissions:
   duels.admin:

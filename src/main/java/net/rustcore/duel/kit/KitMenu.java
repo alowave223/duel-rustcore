@@ -12,6 +12,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 
@@ -19,6 +20,7 @@ import java.util.*;
  * Manages the kit drafting menu for KitBuilder mode.
  * Reads item definitions from the mode's yml config and presents
  * a chest GUI to players where they click to add items to inventory.
+ * Supports pagination when items overflow a single page.
  */
 public class KitMenu {
 
@@ -36,16 +38,29 @@ public class KitMenu {
     private boolean loaded = false;
     private final DuelsPlugin plugin;
 
-    // Available items: slot -> MenuEntry
-    private final Map<Integer, MenuEntry> menuItems = new LinkedHashMap<>();
+    // Available items: ordered list of (globalIndex, MenuEntry)
+    // globalIndex is the original config slot used as a unique identifier
+    private final List<IndexedEntry> allItems = new ArrayList<>();
 
-    // Track picks per player: playerUUID -> (slot -> pick count)
+    // Slot layout: the visual slot positions used for items (sorted from config)
+    private List<Integer> itemSlotLayout = new ArrayList<>();
+
+    // Track picks per player: playerUUID -> (globalIndex -> pick count)
     private final Map<UUID, Map<Integer, Integer>> playerPicks = new HashMap<>();
 
     // Track which inventories belong to kit menus
     private final Set<Inventory> activeMenus = Collections.newSetFromMap(new WeakHashMap<>());
 
     private final Map<UUID, Inventory> playerInventories = new HashMap<>();
+
+    // Pagination: player -> current page
+    private final Map<UUID, Integer> playerPages = new HashMap<>();
+
+    // Pagination buttons
+    private ItemStack prevPageButton;
+    private ItemStack nextPageButton;
+    private int prevPageSlot = 45;
+    private int nextPageSlot = 53;
 
     // PDC keys
     public final NamespacedKey KEY_MENU_TYPE;
@@ -61,7 +76,8 @@ public class KitMenu {
      * Load menu configuration from a mode's YAML config.
      */
     public void load(YamlConfiguration config) {
-        menuItems.clear();
+        allItems.clear();
+        itemSlotLayout.clear();
 
         ConfigurationSection menuSection = config.getConfigurationSection("kit-menu");
         if (menuSection == null) return;
@@ -118,9 +134,24 @@ public class KitMenu {
                     .build();
         }
 
+        // Pagination config
+        prevPageSlot = menuSection.getInt("prev-page-slot", 45);
+        nextPageSlot = menuSection.getInt("next-page-slot", 53);
+
+        prevPageButton = new ItemBuilder(Material.ARROW)
+                .name(plugin.getMessage("kit-prev-page"))
+                .pdc(KEY_MENU_TYPE, "page_prev")
+                .build();
+
+        nextPageButton = new ItemBuilder(Material.ARROW)
+                .name(plugin.getMessage("kit-next-page"))
+                .pdc(KEY_MENU_TYPE, "page_next")
+                .build();
+
         // Parse items
         List<?> itemsList = menuSection.getList("items");
         if (itemsList != null) {
+            Set<Integer> usedSlots = new TreeSet<>();
             for (Object itemObj : itemsList) {
                 if (itemObj instanceof Map<?, ?> itemMap) {
                     int slot = ((Number) itemMap.get("slot")).intValue();
@@ -138,21 +169,38 @@ public class KitMenu {
                         displayBuilder.addLore(plugin.getMessage("amount-per-pick") + amount);
                     }
                     displayBuilder.pdc(KEY_MENU_TYPE, "item");
-                    displayBuilder.pdc(KEY_SLOT_INDEX, slot);
+                    // globalIndex stored in PDC for click identification
+                    displayBuilder.pdc(KEY_SLOT_INDEX, allItems.size());
 
-                    menuItems.put(slot, new MenuEntry(displayBuilder.build(), giveItem, amount, max));
+                    allItems.add(new IndexedEntry(allItems.size(), new MenuEntry(displayBuilder.build(), giveItem, amount, max)));
+                    usedSlots.add(slot);
                 }
             }
+            itemSlotLayout = new ArrayList<>(usedSlots);
         }
     }
 
     /**
-     * Open the kit drafting menu for a player.
+     * Open the kit drafting menu for a player (page 0).
      */
     public Inventory open(Player player) {
-        // Remove previous menu for this player to prevent ghost inventories
+        return openPage(player, 0, true);
+    }
+
+    /**
+     * Open a specific page of the kit menu.
+     * @param resetPicks if true, reset player's picks (first open of a round)
+     */
+    public Inventory openPage(Player player, int page, boolean resetPicks) {
+        // Remove previous menu
         Inventory old = playerInventories.remove(player.getUniqueId());
         if (old != null) activeMenus.remove(old);
+
+        int totalPages = getTotalPages();
+        if (page < 0) page = 0;
+        if (page >= totalPages) page = totalPages - 1;
+
+        playerPages.put(player.getUniqueId(), page);
 
         Inventory inv = Bukkit.createInventory(null, menuRows * 9, menuTitle);
         activeMenus.add(inv);
@@ -163,10 +211,32 @@ public class KitMenu {
             inv.setItem(i, fillerItem);
         }
 
-        // Place items
-        for (Map.Entry<Integer, MenuEntry> entry : menuItems.entrySet()) {
-            if (entry.getKey() < inv.getSize()) {
-                inv.setItem(entry.getKey(), entry.getValue().displayItem());
+        // Place items for this page
+        List<IndexedEntry> pageItems = getItemsForPage(page);
+        Map<Integer, Integer> picks = playerPicks.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>());
+
+        for (int i = 0; i < pageItems.size() && i < itemSlotLayout.size(); i++) {
+            int slot = itemSlotLayout.get(i);
+            IndexedEntry ie = pageItems.get(i);
+            int globalIndex = ie.index();
+            MenuEntry entry = ie.entry();
+
+            int currentPicks = picks.getOrDefault(globalIndex, 0);
+            if (entry.maxPicks() > 0 && currentPicks >= entry.maxPicks()) {
+                // Show depleted
+                ItemStack depleted = new ItemBuilder(Material.BARRIER)
+                        .name(plugin.getMessage("item-depleted-name"))
+                        .addLore(plugin.getMessage("item-depleted-lore"))
+                        .pdc(KEY_MENU_TYPE, "item")
+                        .pdc(KEY_SLOT_INDEX, globalIndex)
+                        .build();
+                inv.setItem(slot, depleted);
+            } else {
+                // Re-tag display item with the global index
+                ItemStack display = new ItemBuilder(entry.displayItem().clone())
+                        .pdc(KEY_SLOT_INDEX, globalIndex)
+                        .build();
+                inv.setItem(slot, display);
             }
         }
 
@@ -175,8 +245,16 @@ public class KitMenu {
         if (clearButton != null && clearSlot < inv.getSize()) inv.setItem(clearSlot, clearButton);
         if (infoItem != null && infoSlot < inv.getSize()) inv.setItem(infoSlot, infoItem);
 
-        // Reset picks
-        playerPicks.put(player.getUniqueId(), new HashMap<>());
+        // Place pagination buttons if needed
+        if (totalPages > 1) {
+            if (page > 0 && prevPageSlot < inv.getSize()) inv.setItem(prevPageSlot, prevPageButton);
+            if (page < totalPages - 1 && nextPageSlot < inv.getSize()) inv.setItem(nextPageSlot, nextPageButton);
+        }
+
+        // Reset picks only on first open
+        if (resetPicks) {
+            playerPicks.put(player.getUniqueId(), new HashMap<>());
+        }
 
         player.openInventory(inv);
         return inv;
@@ -205,33 +283,63 @@ public class KitMenu {
             return true; // Do nothing
         }
 
-        // Check item slots
-        MenuEntry entry = menuItems.get(slot);
-        if (entry == null) return true; // Clicked filler
+        // Check pagination buttons
+        if (slot == prevPageSlot || slot == nextPageSlot) {
+            ItemStack clickedItem = clickedInventory.getItem(slot);
+            if (clickedItem != null && clickedItem.hasItemMeta()) {
+                String type = clickedItem.getItemMeta().getPersistentDataContainer()
+                        .get(KEY_MENU_TYPE, PersistentDataType.STRING);
+                if ("page_prev".equals(type)) {
+                    int currentPage = playerPages.getOrDefault(player.getUniqueId(), 0);
+                    if (currentPage > 0) openPage(player, currentPage - 1, false);
+                    return true;
+                } else if ("page_next".equals(type)) {
+                    int currentPage = playerPages.getOrDefault(player.getUniqueId(), 0);
+                    if (currentPage < getTotalPages() - 1) openPage(player, currentPage + 1, false);
+                    return true;
+                }
+            }
+            return true;
+        }
+
+        // Check item slots - read global index from PDC
+        ItemStack clickedItem = clickedInventory.getItem(slot);
+        if (clickedItem == null || !clickedItem.hasItemMeta()) return true;
+
+        String menuType = clickedItem.getItemMeta().getPersistentDataContainer()
+                .get(KEY_MENU_TYPE, PersistentDataType.STRING);
+        if (!"item".equals(menuType)) return true;
+
+        Integer globalIndex = clickedItem.getItemMeta().getPersistentDataContainer()
+                .get(KEY_SLOT_INDEX, PersistentDataType.INTEGER);
+        if (globalIndex == null || globalIndex < 0 || globalIndex >= allItems.size()) return true;
+
+        MenuEntry entry = allItems.get(globalIndex).entry();
 
         UUID playerId = player.getUniqueId();
         Map<Integer, Integer> picks = playerPicks.computeIfAbsent(playerId, k -> new HashMap<>());
-        int currentPicks = picks.getOrDefault(slot, 0);
+        int currentPicks = picks.getOrDefault(globalIndex, 0);
 
         if (entry.maxPicks() > 0 && currentPicks >= entry.maxPicks()) {
-            player.sendMessage(CC.parse("<red>You've already picked the maximum amount of this item!"));
+            player.sendMessage(CC.parse(plugin.getMessage("item-max-picks-reached")));
             return true;
         }
 
         // Give item to player
-        player.getInventory().addItem(entry.giveItem().clone());
-        picks.put(slot, currentPicks + 1);
+        ItemStack giveItem = entry.giveItem().clone();
+        giveItem.setAmount(entry.giveAmount());
+        player.getInventory().addItem(giveItem);
+        picks.put(globalIndex, currentPicks + 1);
 
         // Update display to show remaining picks
         if (entry.maxPicks() > 0) {
             int remaining = entry.maxPicks() - currentPicks - 1;
             if (remaining <= 0) {
-                // Mark as depleted
                 ItemStack depleted = new ItemBuilder(Material.BARRIER)
-                        .name("<red><strikethrough>Depleted")
-                        .addLore("<gray>You've used all picks for this item")
+                        .name(plugin.getMessage("item-depleted-name"))
+                        .addLore(plugin.getMessage("item-depleted-lore"))
                         .pdc(KEY_MENU_TYPE, "item")
-                        .pdc(KEY_SLOT_INDEX, slot)
+                        .pdc(KEY_SLOT_INDEX, globalIndex)
                         .build();
                 clickedInventory.setItem(slot, depleted);
             }
@@ -251,22 +359,16 @@ public class KitMenu {
         }
         playerPicks.put(player.getUniqueId(), new HashMap<>());
 
-        // Refresh the menu if open
-        if (player.getOpenInventory().getTopInventory() != null
-                && activeMenus.contains(player.getOpenInventory().getTopInventory())) {
-            Inventory inv = player.getOpenInventory().getTopInventory();
-            for (Map.Entry<Integer, MenuEntry> entry : menuItems.entrySet()) {
-                if (entry.getKey() < inv.getSize()) {
-                    inv.setItem(entry.getKey(), entry.getValue().displayItem());
-                }
-            }
-        }
+        // Refresh current page
+        int page = playerPages.getOrDefault(player.getUniqueId(), 0);
+        openPage(player, page, false);
 
         player.playSound(player.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.5f, 0.8f);
     }
 
     public void removePlayer(UUID playerId) {
         playerPicks.remove(playerId);
+        playerPages.remove(playerId);
     }
 
     public void removeMenu(Inventory inv) {
@@ -282,9 +384,34 @@ public class KitMenu {
         return playerInventories.get(playerId);
     }
 
+    public int getPlayerPage(UUID playerId) {
+        return playerPages.getOrDefault(playerId, 0);
+    }
+
     public int getDraftTimeLimit() { return draftTimeLimit; }
 
     public boolean isLoaded() { return loaded; }
 
+    private int getItemsPerPage() {
+        return itemSlotLayout.size();
+    }
+
+    private int getTotalPages() {
+        int perPage = getItemsPerPage();
+        if (perPage <= 0) return 1;
+        return Math.max(1, (int) Math.ceil((double) allItems.size() / perPage));
+    }
+
+    private List<IndexedEntry> getItemsForPage(int page) {
+        int perPage = getItemsPerPage();
+        if (perPage <= 0) return List.of();
+        int start = page * perPage;
+        int end = Math.min(start + perPage, allItems.size());
+        if (start >= allItems.size()) return List.of();
+        return allItems.subList(start, end);
+    }
+
     public record MenuEntry(ItemStack displayItem, ItemStack giveItem, int giveAmount, int maxPicks) {}
+
+    private record IndexedEntry(int index, MenuEntry entry) {}
 }

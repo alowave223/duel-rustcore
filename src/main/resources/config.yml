@@ -163,6 +163,13 @@ lobby-items:
       - HIDE_ENCHANTS
 
 # ============================================================
+# Hub Settings
+# ============================================================
+hub:
+  # BungeeCord server name to send players to
+  server: "lobby"
+
+# ============================================================
 # Duel Settings
 # ============================================================
 duel:
@@ -218,3 +225,24 @@ messages:
   player_score_format: "<white><player> <gray><score>"
   max-picks: "<gray>Max picks: <white>"
   amount-per-pick: "<gray>Amount per pick: <white>"
+  # Forfeit / leave
+  duel-forfeited: "<red>You forfeited the duel!"
+  not-in-duel: "<red>You are not in a duel."
+  # GUI depleted item
+  item-depleted-name: "<red><strikethrough>Depleted"
+  item-depleted-lore: "<gray>You've used all picks for this item"
+  item-max-picks-reached: "<red>You've already picked the maximum amount of this item!"
+  # Stats format
+  stats-header: "<gray>==============================="
+  stats-title: "<gold><bold><player>'s Stats <gray>(<mode>)"
+  stats-elo: "<yellow>ELO: <white><elo>"
+  stats-wl: "<green>Wins: <white><wins> <gray>| <red>Losses: <white><losses> <gray>| <yellow>Win Rate: <white><winrate>"
+  stats-kd: "<aqua>Kills: <white><kills> <gray>| <red>Deaths: <white><deaths> <gray>| <yellow>K/D: <white><kdr>"
+  stats-streak: "<gold>Win Streak: <white><streak> <gray>| <gold>Best: <white><best>"
+  stats-unknown-mode: "<red>Unknown mode: <white><mode_id><red>. Available: <white><modes>"
+  # Pagination
+  kit-prev-page: "<yellow><< Previous Page"
+  kit-next-page: "<yellow>Next Page >>"
+  # Ranked
+  ranked-enabled: "<gold>Ranked mode <green>ENABLED<gold>! You will only match with other ranked players."
+  ranked-disabled: "<gold>Ranked mode <red>DISABLED<gold>. You will match with unranked players."
