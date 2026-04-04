@@ -126,7 +126,19 @@ public class DuelListener implements Listener {
             return;
         }
 
-        // Don't allow friendly fire (shouldn't happen in 1v1 but safety)
+        Modification mod = duel.getMode().getModification();
+
+        // Explosions (end crystals, TNT, etc.) — always allow during active duel
+        EntityDamageEvent.DamageCause cause = event.getCause();
+        if (cause == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION
+                || cause == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION) {
+            if (mod.damageMultiplier() != 1.0) {
+                event.setDamage(event.getDamage() * mod.damageMultiplier());
+            }
+            return;
+        }
+
+        // Don't allow damage from non-participants (players outside the duel)
         if (event.getDamager() instanceof Player attacker) {
             if (!duel.isParticipant(attacker.getUniqueId())) {
                 event.setCancelled(true);
@@ -134,11 +146,32 @@ public class DuelListener implements Listener {
             }
         }
 
-        Modification mod = duel.getMode().getModification();
-
         // Apply damage multiplier
         if (mod.damageMultiplier() != 1.0) {
             event.setDamage(event.getDamage() * mod.damageMultiplier());
+        }
+    }
+
+    /**
+     * Force-allow explosion damage for duel participants even if another plugin cancelled it.
+     * Runs at HIGHEST with ignoreCancelled=false so it sees cancelled events too.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onExplosionDamageOverride(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player player))
+            return;
+
+        EntityDamageEvent.DamageCause cause = event.getCause();
+        if (cause != EntityDamageEvent.DamageCause.ENTITY_EXPLOSION
+                && cause != EntityDamageEvent.DamageCause.BLOCK_EXPLOSION)
+            return;
+
+        Duel duel = plugin.getDuelManager().getDuel(player.getUniqueId());
+        if (duel == null || duel.getState() != DuelState.ACTIVE)
+            return;
+
+        if (event.isCancelled()) {
+            event.setCancelled(false);
         }
     }
 
@@ -190,6 +223,22 @@ public class DuelListener implements Listener {
         if (mod.isNoFireTick() && event.getCause() == EntityDamageEvent.DamageCause.FIRE_TICK) {
             event.setCancelled(true);
             player.setFireTicks(0);
+            return;
+        }
+
+        // Explicitly allow explosion damage during active duels
+        // The HIGHEST-priority onExplosionDamageOverride handler will un-cancel if needed
+        EntityDamageEvent.DamageCause cause = event.getCause();
+        if (cause == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION
+                || cause == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION) {
+            // If this is an EntityDamageByEntityEvent, the multiplier was already applied
+            // in the more specific handler — don't double-apply
+            if (!(event instanceof EntityDamageByEntityEvent)) {
+                if (mod.damageMultiplier() != 1.0) {
+                    event.setDamage(event.getDamage() * mod.damageMultiplier());
+                }
+            }
+            return;
         }
     }
 

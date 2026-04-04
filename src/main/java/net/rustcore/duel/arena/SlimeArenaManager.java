@@ -111,8 +111,15 @@ public class SlimeArenaManager {
                                     new RuntimeException("Cloned world '" + worldName + "' not found after loading"));
                             return;
                         }
-                        activeWorlds.put(duelId, worldName);
+                        // Ensure PVP and explosion damage work in the duel world
+                        world.setPVP(true);
+                        world.setGameRule(org.bukkit.GameRule.MOB_GRIEFING, true);
+                        world.setGameRule(org.bukkit.GameRule.DO_FIRE_TICK, false);
+                        world.setDifficulty(org.bukkit.Difficulty.NORMAL);
+
                         plugin.getLogger().info("Created duel world: " + worldName + " (from arena: " + arenaId + ")");
+
+                        activeWorlds.put(duelId, worldName);
                         future.complete(world);
                     } catch (Exception e) {
                         future.completeExceptionally(e);

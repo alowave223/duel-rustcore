@@ -75,16 +75,13 @@ public class ArenaProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityExplode(EntityExplodeEvent event) {
-        // Only filter explosions that happen in a duel world
         if (!isInAnyArenaWorld(event.getLocation().getWorld())) return;
 
         PlacedBlockTracker tracker = plugin.getArenaManager().getBlockTracker();
         event.blockList().removeIf(block -> {
-            // If the block is inside any active arena (or arena has no polygon = allow all), keep it
             for (ActiveArena arena : plugin.getArenaManager().getAllActiveArenas()) {
                 if (!block.getWorld().equals(arena.getWorld())) continue;
                 CustomPoly2D poly = arena.getPolygon();
-                // No polygon = entire world is the arena, allow destruction
                 if (poly == null) {
                     tracker.isPlacedByAnyDuelAndRemove(block);
                     return false;
