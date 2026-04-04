@@ -267,13 +267,56 @@ public class ArenaManager {
     // -------------------------------------------------------------------------
 
     /**
-     * Restore the arena between rounds — revert player-placed blocks.
-     * The SlimeWorld stays alive; no re-clone needed.
-     * <p>Must be called from the main thread (block mutations).
+     * Restore the arena between rounds.
+     * Since players can break original arena blocks, we destroy the current
+     * SlimeWorld and re-clone a fresh copy from the template.
+     * The ActiveArena's spawns, polygon, and duelId are preserved.
+     * <p>Must be called from the main thread.
      */
     public CompletableFuture<Void> restoreArena(ActiveArena active) {
-        blockTracker.revertAndClear(active.getDuelId());
-        return CompletableFuture.completedFuture(null);
+        blockTracker.clearDuel(active.getDuelId());
+
+        UUID duelId = active.getDuelId();
+        Arena template = findTemplateForArena(active);
+        if (template == null) {
+            plugin.getLogger().warning("Cannot restore arena — template not found for duel " + duelId);
+            return CompletableFuture.completedFuture(null);
+        }
+
+        SlimeArenaManager slime = plugin.getSlimeArenaManager();
+        if (slime == null || !slime.isAvailable()) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        // Destroy old world, then create a fresh clone
+        slime.destroyDuelWorld(duelId).thenRun(() -> {
+            slime.createDuelWorld(duelId, template.getId()).thenAccept(world -> {
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    // Update the active arena with the new world
+                    active.updateWorld(world);
+
+                    // Re-register in active arenas map
+                    activeArenas.put(duelId, active);
+
+                    plugin.getLogger().info("Restored arena '" + template.getId()
+                            + "' for duel " + duelId + " (re-cloned SlimeWorld)");
+                    future.complete(null);
+                });
+            }).exceptionally(ex -> {
+                plugin.getLogger().severe("Failed to restore arena: " + ex.getMessage());
+                future.complete(null);
+                return null;
+            });
+        });
+
+        return future;
+    }
+
+    /** Find the template that was used for an active arena by matching the template ID. */
+    private Arena findTemplateForArena(ActiveArena active) {
+        return templates.get(active.getId());
     }
 
     // -------------------------------------------------------------------------

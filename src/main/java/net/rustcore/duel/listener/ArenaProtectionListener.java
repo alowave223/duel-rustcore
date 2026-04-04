@@ -75,43 +75,57 @@ public class ArenaProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityExplode(EntityExplodeEvent event) {
+        // Only filter explosions that happen in a duel world
+        if (!isInAnyArenaWorld(event.getLocation().getWorld())) return;
+
         PlacedBlockTracker tracker = plugin.getArenaManager().getBlockTracker();
-        // Allow blocks inside any active arena polygon, remove those outside
         event.blockList().removeIf(block -> {
-            boolean insideAnyArena = false;
+            // If the block is inside any active arena (or arena has no polygon = allow all), keep it
             for (ActiveArena arena : plugin.getArenaManager().getAllActiveArenas()) {
+                if (!block.getWorld().equals(arena.getWorld())) continue;
                 CustomPoly2D poly = arena.getPolygon();
-                if (poly != null && poly.getWorld() != null
-                        && poly.getWorld().equals(block.getWorld())
-                        && poly.contains(block.getLocation())) {
-                    insideAnyArena = true;
-                    break;
+                // No polygon = entire world is the arena, allow destruction
+                if (poly == null) {
+                    tracker.isPlacedByAnyDuelAndRemove(block);
+                    return false;
+                }
+                if (poly.contains(block.getLocation())) {
+                    tracker.isPlacedByAnyDuelAndRemove(block);
+                    return false;
                 }
             }
-            if (!insideAnyArena) return true; // Remove from explosion - outside all arenas
-            // Clean up tracker if was player-placed
-            tracker.isPlacedByAnyDuelAndRemove(block);
-            return false; // Keep in explosion list - inside arena
+            return true; // Outside all arena boundaries - remove from explosion
         });
     }
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onBlockExplode(BlockExplodeEvent event) {
+        if (!isInAnyArenaWorld(event.getBlock().getWorld())) return;
+
         PlacedBlockTracker tracker = plugin.getArenaManager().getBlockTracker();
         event.blockList().removeIf(block -> {
-            boolean insideAnyArena = false;
             for (ActiveArena arena : plugin.getArenaManager().getAllActiveArenas()) {
+                if (!block.getWorld().equals(arena.getWorld())) continue;
                 CustomPoly2D poly = arena.getPolygon();
-                if (poly != null && poly.getWorld() != null
-                        && poly.getWorld().equals(block.getWorld())
-                        && poly.contains(block.getLocation())) {
-                    insideAnyArena = true;
-                    break;
+                if (poly == null) {
+                    tracker.isPlacedByAnyDuelAndRemove(block);
+                    return false;
+                }
+                if (poly.contains(block.getLocation())) {
+                    tracker.isPlacedByAnyDuelAndRemove(block);
+                    return false;
                 }
             }
-            if (!insideAnyArena) return true;
-            tracker.isPlacedByAnyDuelAndRemove(block);
-            return false;
+            return true;
         });
+    }
+
+    /** Check if a world belongs to any active arena. */
+    private boolean isInAnyArenaWorld(org.bukkit.World world) {
+        if (world == null) return false;
+        for (ActiveArena arena : plugin.getArenaManager().getAllActiveArenas()) {
+            if (world.equals(arena.getWorld())) return true;
+        }
+        return false;
     }
 }

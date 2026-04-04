@@ -51,6 +51,18 @@ public class ActiveArena {
     }
 
     /**
+     * Update all locations to point to a new world (used when re-cloning between rounds).
+     */
+    public void updateWorld(World newWorld) {
+        if (origin != null) origin.setWorld(newWorld);
+        for (Location loc : teamASpawns) loc.setWorld(newWorld);
+        for (Location loc : teamBSpawns) loc.setWorld(newWorld);
+        if (polygon != null) {
+            polygon = new CustomPoly2D(polygon.getPoints(), polygon.getMinY(), polygon.getMaxY(), newWorld);
+        }
+    }
+
+    /**
      * Pick one random spawn from Team A and one from Team B.
      *
      * @return a two-element list: [teamASpawn, teamBSpawn]
