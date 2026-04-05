@@ -112,9 +112,9 @@ public class SlimeArenaManager {
                             return;
                         }
                         // Ensure PVP and explosion damage work in the duel world
-                        world.setPVP(true);
-                        world.setGameRule(org.bukkit.GameRule.MOB_GRIEFING, true);
-                        world.setGameRule(org.bukkit.GameRule.DO_FIRE_TICK, false);
+                        world.setGameRule(org.bukkit.GameRules.PVP, true);
+                        world.setGameRule(org.bukkit.GameRules.MOB_GRIEFING, true);
+                        world.setGameRule(org.bukkit.GameRules.DO_FIRE_TICK, false);
                         world.setDifficulty(org.bukkit.Difficulty.NORMAL);
 
                         plugin.getLogger().info("Created duel world: " + worldName + " (from arena: " + arenaId + ")");
