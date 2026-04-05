@@ -4,5 +4,6 @@
       "mcp__plugin_context-mode_context-mode__ctx_batch_execute",
       "Bash(find /c/Users/alowave/Documents/duel-rustcore -type f -name *.xml -o -name *.gradle -o -name pom.xml)"
     ]
-  }
+  },
+  "bypassPermissions": true
 }

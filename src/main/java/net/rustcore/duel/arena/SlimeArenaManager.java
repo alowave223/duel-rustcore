@@ -115,6 +115,8 @@ public class SlimeArenaManager {
                         world.setGameRule(org.bukkit.GameRules.PVP, true);
                         world.setGameRule(org.bukkit.GameRules.MOB_GRIEFING, true);
                         world.setGameRule(org.bukkit.GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER, 0);
+                        world.setGameRule(org.bukkit.GameRules.SHOW_ADVANCEMENT_MESSAGES, false);
+                        world.setGameRule(org.bukkit.GameRules.ADVANCE_TIME, false);
                         world.setDifficulty(org.bukkit.Difficulty.HARD);
 
                         plugin.getLogger().info("Created duel world: " + worldName + " (from arena: " + arenaId + ")");
