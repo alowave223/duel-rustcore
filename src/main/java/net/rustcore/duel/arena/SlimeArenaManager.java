@@ -114,8 +114,8 @@ public class SlimeArenaManager {
                         // Ensure PVP and explosion damage work in the duel world
                         world.setGameRule(org.bukkit.GameRules.PVP, true);
                         world.setGameRule(org.bukkit.GameRules.MOB_GRIEFING, true);
-                        world.setGameRule(org.bukkit.GameRules.DO_FIRE_TICK, false);
-                        world.setDifficulty(org.bukkit.Difficulty.NORMAL);
+                        world.setGameRule(org.bukkit.GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER, 0);
+                        world.setDifficulty(org.bukkit.Difficulty.HARD);
 
                         plugin.getLogger().info("Created duel world: " + worldName + " (from arena: " + arenaId + ")");
 
