@@ -86,7 +86,14 @@ public class ItemBuilder {
     }
 
     public ItemBuilder hideFlags() {
-        meta.addItemFlags(ItemFlag.values());
+        meta.addItemFlags(
+                ItemFlag.HIDE_ENCHANTS,
+                ItemFlag.HIDE_ATTRIBUTES,
+                ItemFlag.HIDE_DESTROYS,
+                ItemFlag.HIDE_PLACED_ON,
+                ItemFlag.HIDE_UNBREAKABLE,
+                ItemFlag.HIDE_ARMOR_TRIM
+        );
         return this;
     }
 
@@ -95,6 +102,7 @@ public class ItemBuilder {
         return this;
     }
 
+    @SuppressWarnings("deprecation") // setCustomModelData(int) — replacement CustomModelDataComponent is overkill for simple int CMD
     public ItemBuilder customModelData(int data) {
         if (data > 0) {
             meta.setCustomModelData(data);
@@ -104,11 +112,11 @@ public class ItemBuilder {
 
     public ItemBuilder potionType(String potionTypeName) {
         if (meta instanceof PotionMeta potionMeta && potionTypeName != null) {
-            try {
-                PotionType type = PotionType.valueOf(potionTypeName.toUpperCase());
+            PotionType type = RegistryAccess.registryAccess()
+                    .getRegistry(RegistryKey.POTION)
+                    .get(NamespacedKey.minecraft(potionTypeName.toLowerCase()));
+            if (type != null) {
                 potionMeta.setBasePotionType(type);
-            } catch (IllegalArgumentException ignored) {
-                // Try lookup with registry
             }
         }
         return this;
