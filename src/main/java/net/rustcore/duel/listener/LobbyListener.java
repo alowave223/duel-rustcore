@@ -15,6 +15,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.inventory.EquipmentSlot;
 
 /**
  * Handles lobby-specific interactions:
@@ -34,6 +35,9 @@ public class LobbyListener implements Listener {
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_AIR
                 && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+
+        // Prevent double-fire: PlayerInteractEvent fires for both hands
+        if (event.getHand() != EquipmentSlot.HAND) return;
 
         Player player = event.getPlayer();
 
