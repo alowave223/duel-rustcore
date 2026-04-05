@@ -12,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.Set;
 
 /**
  * Manages all active duels, the matchmaking queue, and duel requests.
@@ -69,7 +68,7 @@ public class DuelManager {
         } else {
             DuelMode mode = plugin.getModeManager().getMode(modeId);
             String modeName = mode != null ? mode.getDisplayName() : modeId;
-            String rankLabel = ranked ? " <yellow>(Ranked)" : " <gray>(Unranked)";
+            String rankLabel = ranked ? plugin.getMessage("queue-ranked-label") : plugin.getMessage("queue-unranked-label");
             player.sendMessage(CC.parse(plugin.getMessage("prefix"))
                     .append(CC.parse(plugin.getMessage("queue-joined"), "{mode}", modeName))
                     .append(CC.parse(rankLabel)));

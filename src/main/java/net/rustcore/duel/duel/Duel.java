@@ -58,29 +58,60 @@ public class Duel {
         }
     }
 
-    public UUID getId() { return id; }
-    public DuelMode getMode() { return mode; }
-    public ActiveArena getActiveArena() { return activeArena; }
-    public int getBestOf() { return bestOf; }
-    public int getCurrentRound() { return currentRound; }
-    public DuelState getState() { return state; }
-    public Map<UUID, Integer> getScores() { return Collections.unmodifiableMap(scores); }
+    public UUID getId() {
+        return id;
+    }
+
+    public DuelMode getMode() {
+        return mode;
+    }
+
+    public ActiveArena getActiveArena() {
+        return activeArena;
+    }
+
+    public int getBestOf() {
+        return bestOf;
+    }
+
+    public int getCurrentRound() {
+        return currentRound;
+    }
+
+    public DuelState getState() {
+        return state;
+    }
+
+    public Map<UUID, Integer> getScores() {
+        return Collections.unmodifiableMap(scores);
+    }
 
     public List<Player> getPlayers() {
         List<Player> players = new ArrayList<>();
         for (UUID pid : playerIds) {
             Player p = Bukkit.getPlayer(pid);
-            if (p != null && p.isOnline()) players.add(p);
+            if (p != null && p.isOnline())
+                players.add(p);
         }
         return players;
     }
 
-    public List<UUID> getPlayerIds() { return Collections.unmodifiableList(playerIds); }
+    public List<UUID> getPlayerIds() {
+        return Collections.unmodifiableList(playerIds);
+    }
 
     @SuppressWarnings("unchecked")
-    public <T> T getMeta(String key) { return (T) metadata.get(key); }
-    public void setMeta(String key, Object value) { metadata.put(key, value); }
-    public void removeMeta(String key) { metadata.remove(key); }
+    public <T> T getMeta(String key) {
+        return (T) metadata.get(key);
+    }
+
+    public void setMeta(String key, Object value) {
+        metadata.put(key, value);
+    }
+
+    public void removeMeta(String key) {
+        metadata.remove(key);
+    }
 
     public boolean isParticipant(UUID playerId) {
         return playerIds.contains(playerId);
@@ -146,8 +177,7 @@ public class Duel {
                     player.showTitle(Title.title(
                             CC.parse("<gold><bold>" + seconds),
                             Component.empty(),
-                            Title.Times.times(Duration.ZERO, Duration.ofMillis(1100), Duration.ofMillis(200))
-                    ));
+                            Title.Times.times(Duration.ZERO, Duration.ofMillis(1100), Duration.ofMillis(200))));
                     player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1f);
                 }
 
@@ -166,8 +196,7 @@ public class Duel {
             player.showTitle(Title.title(
                     CC.parse("<green><bold>FIGHT!"),
                     Component.empty(),
-                    Title.Times.times(Duration.ZERO, Duration.ofMillis(500), Duration.ofMillis(500))
-            ));
+                    Title.Times.times(Duration.ZERO, Duration.ofMillis(500), Duration.ofMillis(500))));
             player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.7f, 1.2f);
         }
 
@@ -188,10 +217,12 @@ public class Duel {
      * Called when a player dies. Checks if the round should end.
      */
     public void handleDeath(Player dead, Player killer) {
-        if (state != DuelState.ACTIVE) return;
+        if (state != DuelState.ACTIVE)
+            return;
 
         boolean countsAsLoss = mode.onPlayerDeath(this, dead, killer);
-        if (!countsAsLoss) return;
+        if (!countsAsLoss)
+            return;
 
         // The killer wins this round
         UUID winnerId = killer != null ? killer.getUniqueId() : null;
@@ -210,10 +241,12 @@ public class Duel {
 
     /**
      * End the current round.
+     * 
      * @param roundWinner UUID of the round winner, or null for a draw
      */
     private void endRound(UUID roundWinner) {
-        if (state != DuelState.ACTIVE) return;
+        if (state != DuelState.ACTIVE)
+            return;
         state = DuelState.ROUND_ENDING;
 
         if (timeLimitTask != null) {
@@ -305,8 +338,10 @@ public class Duel {
                     "{wins}", String.valueOf(wins),
                     "{losses}", String.valueOf(losses)));
 
-            // Update stats
-            plugin.getStatsManager().recordResult(mode.getId(), winnerId, loserId);
+            boolean isRanked = plugin.getDuelManager().isRanked(winnerId) && plugin.getDuelManager().isRanked(loserId);
+
+            if (isRanked)
+                plugin.getStatsManager().recordResult(mode.getId(), winnerId, loserId);
         } else {
             broadcast(CC.parse(plugin.getMessage("duel-draw")));
         }
@@ -345,16 +380,16 @@ public class Duel {
         String unknownPlayer = plugin.getMessage("unknown-player");
 
         String joinedScores = playerIds.stream()
-            .<String>map(pid -> { // <--- Explicitly tell the map to return a String
-                Player p = Bukkit.getPlayer(pid);
-                String name = (p != null) ? p.getName() : unknownPlayer;
-                int score = scores.getOrDefault(pid, 0);
+                .<String>map(pid -> { // <--- Explicitly tell the map to return a String
+                    Player p = Bukkit.getPlayer(pid);
+                    String name = (p != null) ? p.getName() : unknownPlayer;
+                    int score = scores.getOrDefault(pid, 0);
 
-                return playerFormat
-                        .replace("<player>", name)
-                        .replace("<score>", String.valueOf(score));
-            })
-        .collect(Collectors.joining(separator));
+                    return playerFormat
+                            .replace("<player>", name)
+                            .replace("<score>", String.valueOf(score));
+                })
+                .collect(Collectors.joining(separator));
 
         broadcast(CC.parse(prefix + joinedScores));
     }
@@ -363,10 +398,13 @@ public class Duel {
      * Force end the duel (e.g., player disconnect).
      */
     public void forceEnd(UUID disconnectedPlayer) {
-        if (state == DuelState.ENDED) return;
+        if (state == DuelState.ENDED)
+            return;
 
-        if (countdownTask != null) countdownTask.cancel();
-        if (timeLimitTask != null) timeLimitTask.cancel();
+        if (countdownTask != null)
+            countdownTask.cancel();
+        if (timeLimitTask != null)
+            timeLimitTask.cancel();
 
         UUID winnerId = playerIds.stream()
                 .filter(p -> !p.equals(disconnectedPlayer))
@@ -382,12 +420,17 @@ public class Duel {
             }
         }
 
-        if (winnerId != null) {
+        if (winnerId != null && disconnectedPlayer != null) {
             Player winner = Bukkit.getPlayer(winnerId);
+
+            boolean isRanked = plugin.getDuelManager().isRanked(winnerId)
+                    && plugin.getDuelManager().isRanked(disconnectedPlayer);
+
             if (winner != null) {
                 winner.sendMessage(CC.parse(plugin.getMessage("prefix"))
                         .append(CC.parse(plugin.getMessage("opponent-disconnected"))));
-                plugin.getStatsManager().recordResult(mode.getId(), winnerId, disconnectedPlayer);
+                if (isRanked)
+                    plugin.getStatsManager().recordResult(mode.getId(), winnerId, disconnectedPlayer);
             }
         }
 

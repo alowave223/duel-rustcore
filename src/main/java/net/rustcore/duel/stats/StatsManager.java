@@ -1,6 +1,7 @@
 package net.rustcore.duel.stats;
 
 import net.rustcore.duel.DuelsPlugin;
+
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 

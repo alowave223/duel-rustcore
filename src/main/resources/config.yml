@@ -199,6 +199,8 @@ messages:
   kit-ready: "<green>Kit ready! Waiting for opponent..."
   queue-joined: "<green>You joined the <white><mode><green> queue!"
   queue-left: "<red>You left the queue."
+  queue-ranked-label: " <yellow>(Ranked)"
+  queue-unranked-label: " <gray>(Unranked)"
   no-arenas: "<red>No arenas available right now. Try again later."
   already-in-duel: "<red>You are already in a duel!"
   player-not-found: "<red>Player not found."
