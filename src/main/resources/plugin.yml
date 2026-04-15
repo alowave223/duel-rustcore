@@ -32,5 +32,23 @@ permissions:
     description: Permission to play duels
     default: true
   duels.queue:
-    description: Permission to queue for duels
+    description: Permission to join matchmaking queue
+    default: true
+  duels.challenge:
+    description: Permission to challenge / accept / decline duels
+    default: true
+  duels.stats:
+    description: Permission to view duel stats
+    default: true
+  duels.ranked:
+    description: Permission to toggle ranked mode
+    default: true
+  duels.draftmenu:
+    description: Permission to open the kit draft menu
+    default: true
+  duels.hub:
+    description: Permission to use /hub
+    default: true
+  duels.lobby:
+    description: Permission to use /lobby
     default: true

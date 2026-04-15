@@ -57,11 +57,20 @@ public class DuelCommand implements TabExecutor {
         };
     }
 
+    private boolean requirePerm(Player player, String node) {
+        if (player.hasPermission(node)) return true;
+        player.sendMessage(CC.parse(plugin.getMessage("prefix"))
+                .append(CC.parse(plugin.getMessage("no-permission"))));
+        return false;
+    }
+
     private boolean handleOpenKitMenu(CommandSender sender) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(CC.parse(plugin.getMessage("only-players")));
             return true;
         }
+
+        if (!requirePerm(player, "duels.draftmenu")) return true;
 
         Duel duel = plugin.getDuelManager().getDuel(player.getUniqueId());
         if (duel == null) {
@@ -207,6 +216,8 @@ public class DuelCommand implements TabExecutor {
             return true;
         }
 
+        if (!requirePerm(player, "duels.play")) return true;
+
         if (plugin.getDuelManager().isInDuel(player.getUniqueId())) {
             plugin.getDuelManager().forfeitDuel(player);
         } else {
@@ -222,11 +233,7 @@ public class DuelCommand implements TabExecutor {
             return true;
         }
 
-        if (!player.hasPermission("duels.queue")) {
-            player.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                    .append(CC.parse(plugin.getMessage("no-permission"))));
-            return true;
-        }
+        if (!requirePerm(player, "duels.challenge")) return true;
 
         if (args.length < 2) {
             player.sendMessage(CC.parse(plugin.getMessage("prefix"))
@@ -290,11 +297,7 @@ public class DuelCommand implements TabExecutor {
     private boolean handleAccept(CommandSender sender) {
         if (!(sender instanceof Player player))
             return true;
-        if (!player.hasPermission("duels.queue")) {
-            player.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                    .append(CC.parse(plugin.getMessage("no-permission"))));
-            return true;
-        }
+        if (!requirePerm(player, "duels.challenge")) return true;
         plugin.getDuelManager().acceptRequest(player);
         return true;
     }
@@ -302,6 +305,7 @@ public class DuelCommand implements TabExecutor {
     private boolean handleDecline(CommandSender sender) {
         if (!(sender instanceof Player player))
             return true;
+        if (!requirePerm(player, "duels.challenge")) return true;
         plugin.getDuelManager().declineRequest(player);
         return true;
     }
@@ -311,6 +315,8 @@ public class DuelCommand implements TabExecutor {
             sender.sendMessage(CC.parse(plugin.getMessage("only-players")));
             return true;
         }
+
+        if (!requirePerm(player, "duels.ranked")) return true;
 
         plugin.getDuelManager().toggleRanked(player.getUniqueId());
         boolean isRanked = plugin.getDuelManager().isRanked(player.getUniqueId());
@@ -330,6 +336,8 @@ public class DuelCommand implements TabExecutor {
             sender.sendMessage(CC.parse(plugin.getMessage("only-players")));
             return true;
         }
+
+        if (!requirePerm(player, "duels.stats")) return true;
 
         String modeId = args.length > 1 ? args[1] : defaultModeId();
 
