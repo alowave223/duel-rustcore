@@ -63,6 +63,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *   %duels_queue_mode%                → mode player is queued for
  *   %duels_queue_size%                → total players across all queues
  *   %duels_queue_size_<mode>%         → players waiting in a specific mode queue
+ *   %duels_queue_ranked%              → RANKED / UNRANKED
  * </pre>
  *
  * <h3>Leaderboard placeholders (top-10, cached 5 s):</h3>
@@ -276,17 +277,23 @@ public class DuelsExpansion extends PlaceholderExpansion {
         }
 
         if (rest.equalsIgnoreCase("size")) {
-            // Sum across all mode queues
             int total = plugin.getModeManager().getAllModes().stream()
-                    .mapToInt(m -> queue.getQueueSize(m.getId()))
+                    .mapToInt(m -> queue.getQueueSize(m.getId() + ":ranked")
+                                 + queue.getQueueSize(m.getId() + ":unranked"))
                     .sum();
             return String.valueOf(total);
         }
 
-        // queue_size_<mode>
         if (rest.toLowerCase().startsWith("size_")) {
             String modeId = rest.substring(5).toLowerCase();
-            return String.valueOf(queue.getQueueSize(modeId));
+            int size = queue.getQueueSize(modeId + ":ranked")
+                     + queue.getQueueSize(modeId + ":unranked");
+            return String.valueOf(size);
+        }
+
+        if (rest.equalsIgnoreCase("ranked")) {
+            boolean ranked = plugin.getDuelManager().isRanked(player.getUniqueId());
+            return ranked ? "RANKED" : "UNRANKED";
         }
 
         return EMPTY;
