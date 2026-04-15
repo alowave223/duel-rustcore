@@ -169,7 +169,7 @@ public class SlimeArenaManager {
             if (world != null) {
                 // Safety fallback: teleport any remaining players to lobby
                 for (var player : world.getPlayers()) {
-                    plugin.getLobbyManager().sendToLobby(player);
+                    plugin.getLobbyManager().sendToHub(player);
                 }
                 Bukkit.unloadWorld(world, false);
             }
@@ -202,7 +202,7 @@ public class SlimeArenaManager {
                 World world = Bukkit.getWorld(worldName);
                 if (world != null) {
                     for (var player : world.getPlayers()) {
-                        plugin.getLobbyManager().sendToLobby(player);
+                        plugin.getLobbyManager().sendToHub(player);
                     }
                     Bukkit.unloadWorld(world, false);
                 }

@@ -68,7 +68,8 @@ public class DuelManager {
         } else {
             DuelMode mode = plugin.getModeManager().getMode(modeId);
             String modeName = mode != null ? mode.getDisplayName() : modeId;
-            String rankLabel = ranked ? plugin.getMessage("queue-ranked-label") : plugin.getMessage("queue-unranked-label");
+            String rankLabel = ranked ? plugin.getMessage("queue-ranked-label")
+                    : plugin.getMessage("queue-unranked-label");
             player.sendMessage(CC.parse(plugin.getMessage("prefix"))
                     .append(CC.parse(plugin.getMessage("queue-joined"), "{mode}", modeName))
                     .append(CC.parse(rankLabel)));
@@ -267,7 +268,10 @@ public class DuelManager {
         return playerDuels.containsKey(playerId);
     }
 
-    /** Returns true while the arena is being pasted and the Duel object doesn't exist yet. */
+    /**
+     * Returns true while the arena is being pasted and the Duel object doesn't
+     * exist yet.
+     */
     public boolean isAllocating(UUID playerId) {
         return allocatingPlayers.contains(playerId);
     }
@@ -281,7 +285,9 @@ public class DuelManager {
         return activeDuels.get(duelId);
     }
 
-    public DuelQueue getQueue() { return queue; }
+    public DuelQueue getQueue() {
+        return queue;
+    }
 
     public Collection<Duel> getActiveDuels() {
         return activeDuels.values();
@@ -322,7 +328,8 @@ public class DuelManager {
                 for (String key : section.getKeys(false)) {
                     try {
                         rankedPreference.put(UUID.fromString(key), section.getBoolean(key));
-                    } catch (IllegalArgumentException ignored) {}
+                    } catch (IllegalArgumentException ignored) {
+                    }
                 }
             }
         } else {
@@ -335,7 +342,8 @@ public class DuelManager {
     }
 
     public void saveRankedSync() {
-        if (rankedConfig == null || rankedFile == null) return;
+        if (rankedConfig == null || rankedFile == null)
+            return;
         for (Map.Entry<UUID, Boolean> entry : rankedPreference.entrySet()) {
             rankedConfig.set("players." + entry.getKey().toString(), entry.getValue());
         }
@@ -346,5 +354,6 @@ public class DuelManager {
         }
     }
 
-    public record DuelRequest(UUID senderId, UUID targetId, String modeId, int bestOf) {}
+    public record DuelRequest(UUID senderId, UUID targetId, String modeId, int bestOf) {
+    }
 }

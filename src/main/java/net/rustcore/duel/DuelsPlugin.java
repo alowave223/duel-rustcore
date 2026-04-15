@@ -4,6 +4,7 @@ import net.rustcore.duel.arena.ArenaManager;
 import net.rustcore.duel.arena.SlimeArenaManager;
 import net.rustcore.duel.command.DuelCommand;
 import net.rustcore.duel.command.HubCommand;
+import net.rustcore.duel.command.LobbyCommand;
 import net.rustcore.duel.placeholder.DuelsExpansion;
 import net.rustcore.duel.duel.DuelManager;
 import net.rustcore.duel.listener.ArenaProtectionListener;
@@ -67,6 +68,7 @@ public class DuelsPlugin extends JavaPlugin {
         getCommand("duel").setExecutor(duelCommand);
         getCommand("duel").setTabCompleter(duelCommand);
         getCommand("hub").setExecutor(new HubCommand(this));
+        getCommand("lobby").setExecutor(new LobbyCommand(this));
 
         // Register BungeeCord plugin messaging channel
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
@@ -142,10 +144,27 @@ public class DuelsPlugin extends JavaPlugin {
     }
 
     // Manager accessors
-    public ArenaManager getArenaManager() { return arenaManager; }
-    public ModeManager getModeManager() { return modeManager; }
-    public DuelManager getDuelManager() { return duelManager; }
-    public StatsManager getStatsManager() { return statsManager; }
-    public LobbyManager getLobbyManager() { return lobbyManager; }
-    public SlimeArenaManager getSlimeArenaManager() { return slimeArenaManager; }
+    public ArenaManager getArenaManager() {
+        return arenaManager;
+    }
+
+    public ModeManager getModeManager() {
+        return modeManager;
+    }
+
+    public DuelManager getDuelManager() {
+        return duelManager;
+    }
+
+    public StatsManager getStatsManager() {
+        return statsManager;
+    }
+
+    public LobbyManager getLobbyManager() {
+        return lobbyManager;
+    }
+
+    public SlimeArenaManager getSlimeArenaManager() {
+        return slimeArenaManager;
+    }
 }

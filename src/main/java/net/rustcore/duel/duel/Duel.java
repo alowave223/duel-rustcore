@@ -356,7 +356,7 @@ public class Duel {
                     pearl.remove();
                 }
                 // Always send to lobby (fixed: previously skipped if pearls existed)
-                plugin.getLobbyManager().sendToLobby(player);
+                plugin.getLobbyManager().sendToHub(player);
             }
 
             plugin.getDuelManager().removeDuel(id);
@@ -436,7 +436,7 @@ public class Duel {
 
         // Teleport ALL online participants to lobby before destroying arena
         for (Player player : getPlayers()) {
-            plugin.getLobbyManager().sendToLobby(player);
+            plugin.getLobbyManager().sendToHub(player);
         }
 
         // Then destroy the arena

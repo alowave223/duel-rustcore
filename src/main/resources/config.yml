@@ -2,12 +2,13 @@
 # Duels Plugin - Main Configuration
 # ============================================================
 
-# General settings
-general:
-  # World where the lobby is
-  lobby-world: "lobby"
-  # Lobby spawn location (x, y, z, yaw, pitch)
-  lobby-spawn:
+# BungeeCord target server name for /lobby
+lobby:
+  server: "lobby"
+
+# Hub spawns on THIS server. /hub <n> teleports to the nth entry (1-based).
+hubs:
+  - world: "lobby"
     x: 0.5
     y: 64.0
     z: 0.5
@@ -163,13 +164,6 @@ lobby-items:
       - HIDE_ENCHANTS
 
 # ============================================================
-# Hub Settings
-# ============================================================
-hub:
-  # BungeeCord server name to send players to
-  server: "lobby"
-
-# ============================================================
 # Duel Settings
 # ============================================================
 duel:
@@ -248,3 +242,5 @@ messages:
   # Ranked
   ranked-enabled: "<gold>Ranked mode <green>ENABLED<gold>! You will only match with other ranked players."
   ranked-disabled: "<gold>Ranked mode <red>DISABLED<gold>. You will match with unranked players."
+  hub-invalid-number: "<red>Hub index must be a number."
+  hub-out-of-range: "<red>Hub <white><n><red> doesn't exist (max: <white><max><red>)."

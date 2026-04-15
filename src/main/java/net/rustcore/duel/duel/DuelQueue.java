@@ -19,6 +19,7 @@ public class DuelQueue {
 
     /**
      * Add a player to a mode's queue.
+     * 
      * @return a matched pair if a match was found, otherwise null
      */
     public QueueMatch addPlayer(UUID playerId, String modeId, int bestOf) {
@@ -83,5 +84,6 @@ public class DuelQueue {
         return queue != null ? queue.size() : 0;
     }
 
-    public record QueueMatch(UUID player1, UUID player2, String modeId, int bestOf) {}
+    public record QueueMatch(UUID player1, UUID player2, String modeId, int bestOf) {
+    }
 }

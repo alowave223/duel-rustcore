@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * PlaceholderAPI expansion for RustCore-Duels.
  *
  * <h3>Stats placeholders — per mode:</h3>
+ * 
  * <pre>
  *   %duels_stats_<mode>_elo%
  *   %duels_stats_<mode>_wins%
@@ -32,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * </pre>
  *
  * <h3>Rank placeholders — position on leaderboard:</h3>
+ * 
  * <pre>
  *   %duels_rank_<mode>_elo%
  *   %duels_rank_<mode>_wins%
@@ -40,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * </pre>
  *
  * <h3>Active duel placeholders:</h3>
+ * 
  * <pre>
  *   %duels_duel_active%           → true / false
  *   %duels_duel_state%            → PREPARING / DRAFTING / COUNTDOWN / ACTIVE / ROUND_ENDING / ENDED
@@ -54,6 +57,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * </pre>
  *
  * <h3>Queue placeholders:</h3>
+ * 
  * <pre>
  *   %duels_queue_active%              → true / false (is player in queue)
  *   %duels_queue_mode%                → mode player is queued for
@@ -62,6 +66,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * </pre>
  *
  * <h3>Leaderboard placeholders (top-10, cached 5 s):</h3>
+ * 
  * <pre>
  *   %duels_top_<mode>_<stat>_<pos>_name%    → player name at rank <pos>
  *   %duels_top_<mode>_<stat>_<pos>_value%   → stat value at rank <pos>
@@ -116,22 +121,24 @@ public class DuelsExpansion extends PlaceholderExpansion {
 
     @Override
     public @Nullable String onRequest(OfflinePlayer offlinePlayer, @NotNull String params) {
-        if (offlinePlayer == null) return EMPTY;
+        if (offlinePlayer == null)
+            return EMPTY;
 
         // Split on _ but limit to 2 parts: category + rest
         int firstUnderscore = params.indexOf('_');
-        if (firstUnderscore < 0) return EMPTY;
+        if (firstUnderscore < 0)
+            return EMPTY;
 
         String category = params.substring(0, firstUnderscore).toLowerCase();
         String rest = params.substring(firstUnderscore + 1);
 
         return switch (category) {
-            case "stats"  -> resolveStats(offlinePlayer, rest);
-            case "rank"   -> resolveRank(offlinePlayer, rest);
-            case "duel"   -> resolveDuel(offlinePlayer, rest);
-            case "queue"  -> resolveQueue(offlinePlayer, rest);
-            case "top"    -> resolveTop(rest);
-            default       -> EMPTY;
+            case "stats" -> resolveStats(offlinePlayer, rest);
+            case "rank" -> resolveRank(offlinePlayer, rest);
+            case "duel" -> resolveDuel(offlinePlayer, rest);
+            case "queue" -> resolveQueue(offlinePlayer, rest);
+            case "top" -> resolveTop(rest);
+            default -> EMPTY;
         };
     }
 
@@ -142,24 +149,25 @@ public class DuelsExpansion extends PlaceholderExpansion {
     private String resolveStats(OfflinePlayer player, String rest) {
         // rest = "<mode>_<stat>"
         int sep = rest.lastIndexOf('_');
-        if (sep < 0) return EMPTY;
+        if (sep < 0)
+            return EMPTY;
 
         String modeId = rest.substring(0, sep).toLowerCase();
-        String stat   = rest.substring(sep + 1).toLowerCase();
+        String stat = rest.substring(sep + 1).toLowerCase();
 
         PlayerStats stats = plugin.getStatsManager().getStats(modeId, player.getUniqueId());
 
         return switch (stat) {
-            case "elo"           -> String.valueOf(stats.getElo());
-            case "wins"          -> String.valueOf(stats.getWins());
-            case "losses"        -> String.valueOf(stats.getLosses());
-            case "kills"         -> String.valueOf(stats.getKills());
-            case "deaths"        -> String.valueOf(stats.getDeaths());
-            case "kdr"           -> String.format("%.2f", stats.getKdr());
-            case "winrate"       -> String.format("%.1f", stats.getWinRate());
-            case "winstreak"     -> String.valueOf(stats.getWinStreak());
+            case "elo" -> String.valueOf(stats.getElo());
+            case "wins" -> String.valueOf(stats.getWins());
+            case "losses" -> String.valueOf(stats.getLosses());
+            case "kills" -> String.valueOf(stats.getKills());
+            case "deaths" -> String.valueOf(stats.getDeaths());
+            case "kdr" -> String.format("%.2f", stats.getKdr());
+            case "winrate" -> String.format("%.1f", stats.getWinRate());
+            case "winstreak" -> String.valueOf(stats.getWinStreak());
             case "bestwinstreak" -> String.valueOf(stats.getBestWinStreak());
-            default              -> EMPTY;
+            default -> EMPTY;
         };
     }
 
@@ -170,10 +178,11 @@ public class DuelsExpansion extends PlaceholderExpansion {
     private String resolveRank(OfflinePlayer player, String rest) {
         // rest = "<mode>_<stat>"
         int sep = rest.lastIndexOf('_');
-        if (sep < 0) return EMPTY;
+        if (sep < 0)
+            return EMPTY;
 
         String modeId = rest.substring(0, sep).toLowerCase();
-        String stat   = rest.substring(sep + 1).toLowerCase();
+        String stat = rest.substring(sep + 1).toLowerCase();
 
         List<LeaderboardEntry> board = getCachedLeaderboard(modeId, stat, Integer.MAX_VALUE);
         UUID target = player.getUniqueId();
@@ -199,26 +208,28 @@ public class DuelsExpansion extends PlaceholderExpansion {
             return duel != null ? "true" : "false";
         }
 
-        if (duel == null) return EMPTY;
+        if (duel == null)
+            return EMPTY;
 
         return switch (field.toLowerCase()) {
-            case "state"           -> formatState(duel.getState());
-            case "mode"            -> duel.getMode().getDisplayName();
-            case "round"           -> String.valueOf(duel.getCurrentRound());
-            case "bestof"          -> String.valueOf(duel.getBestOf());
-            case "my_score"        -> String.valueOf(duel.getScores().getOrDefault(uuid, 0));
-            case "opponent_score"  -> String.valueOf(opponentScore(duel, uuid));
-            case "score"           -> duel.getScores().getOrDefault(uuid, 0)
-                                      + "-" + opponentScore(duel, uuid);
-            case "opponent"        -> opponentName(duel, uuid);
-            case "arena"           -> duel.getActiveArena().getTemplate().getDisplayName();
-            default                -> EMPTY;
+            case "state" -> formatState(duel.getState());
+            case "mode" -> duel.getMode().getDisplayName();
+            case "round" -> String.valueOf(duel.getCurrentRound());
+            case "bestof" -> String.valueOf(duel.getBestOf());
+            case "my_score" -> String.valueOf(duel.getScores().getOrDefault(uuid, 0));
+            case "opponent_score" -> String.valueOf(opponentScore(duel, uuid));
+            case "score" -> duel.getScores().getOrDefault(uuid, 0)
+                    + "-" + opponentScore(duel, uuid);
+            case "opponent" -> opponentName(duel, uuid);
+            case "arena" -> duel.getActiveArena().getTemplate().getDisplayName();
+            default -> EMPTY;
         };
     }
 
     private int opponentScore(Duel duel, UUID self) {
         for (Map.Entry<UUID, Integer> entry : duel.getScores().entrySet()) {
-            if (!entry.getKey().equals(self)) return entry.getValue();
+            if (!entry.getKey().equals(self))
+                return entry.getValue();
         }
         return 0;
     }
@@ -227,7 +238,8 @@ public class DuelsExpansion extends PlaceholderExpansion {
         for (UUID pid : duel.getPlayerIds()) {
             if (!pid.equals(self)) {
                 Player p = Bukkit.getPlayer(pid);
-                if (p != null) return p.getName();
+                if (p != null)
+                    return p.getName();
                 OfflinePlayer op = Bukkit.getOfflinePlayer(pid);
                 return op.getName() != null ? op.getName() : "???";
             }
@@ -237,17 +249,17 @@ public class DuelsExpansion extends PlaceholderExpansion {
 
     private String formatState(DuelState state) {
         return switch (state) {
-            case PREPARING    -> "Preparing";
-            case DRAFTING     -> "Drafting";
-            case COUNTDOWN    -> "Countdown";
-            case ACTIVE       -> "Active";
+            case PREPARING -> "Preparing";
+            case DRAFTING -> "Drafting";
+            case COUNTDOWN -> "Countdown";
+            case ACTIVE -> "Active";
             case ROUND_ENDING -> "Round Ending";
-            case ENDED        -> "Ended";
+            case ENDED -> "Ended";
         };
     }
 
     // -------------------------------------------------------------------------
-    // queue_<field>  /  queue_size_<mode>
+    // queue_<field> / queue_size_<mode>
     // -------------------------------------------------------------------------
 
     private String resolveQueue(OfflinePlayer player, String rest) {
@@ -285,21 +297,22 @@ public class DuelsExpansion extends PlaceholderExpansion {
     // -------------------------------------------------------------------------
 
     private String resolveTop(String rest) {
-        // parts: [mode, stat, pos, field]  — mode itself may contain underscores,
+        // parts: [mode, stat, pos, field] — mode itself may contain underscores,
         // but stat is always the known word before the numeric position.
         // Strategy: find the last three underscores to extract pos and field,
         // then split mode/stat by the last underscore in the remaining prefix.
         String[] parts = rest.split("_");
-        if (parts.length < 4) return EMPTY;
+        if (parts.length < 4)
+            return EMPTY;
 
-        // field  = last token
-        // pos    = second-to-last token (must be numeric)
-        // stat   = third-to-last token
-        // mode   = everything before that
+        // field = last token
+        // pos = second-to-last token (must be numeric)
+        // stat = third-to-last token
+        // mode = everything before that
         String fieldToken = parts[parts.length - 1].toLowerCase();
-        String posToken   = parts[parts.length - 2];
-        String statToken  = parts[parts.length - 3].toLowerCase();
-        String modeToken  = String.join("_", Arrays.copyOf(parts, parts.length - 3)).toLowerCase();
+        String posToken = parts[parts.length - 2];
+        String statToken = parts[parts.length - 3].toLowerCase();
+        String modeToken = String.join("_", Arrays.copyOf(parts, parts.length - 3)).toLowerCase();
 
         int pos;
         try {
@@ -307,17 +320,19 @@ public class DuelsExpansion extends PlaceholderExpansion {
         } catch (NumberFormatException e) {
             return EMPTY;
         }
-        if (pos < 1 || pos > 10) return EMPTY;
+        if (pos < 1 || pos > 10)
+            return EMPTY;
 
         List<LeaderboardEntry> board = getCachedLeaderboard(modeToken, statToken, 10);
-        if (pos > board.size()) return EMPTY;
+        if (pos > board.size())
+            return EMPTY;
 
         LeaderboardEntry entry = board.get(pos - 1);
 
         return switch (fieldToken) {
-            case "name"  -> entry.name();
+            case "name" -> entry.name();
             case "value" -> String.valueOf(entry.value());
-            default      -> EMPTY;
+            default -> EMPTY;
         };
     }
 
@@ -332,8 +347,8 @@ public class DuelsExpansion extends PlaceholderExpansion {
 
         if (lastRefresh == null || (now - lastRefresh) > CACHE_TTL_MS) {
             // Refresh synchronously (called from main thread by PAPI)
-            List<Map.Entry<UUID, PlayerStats>> raw =
-                    plugin.getStatsManager().getLeaderboard(modeId, stat, Math.min(limit, 10));
+            List<Map.Entry<UUID, PlayerStats>> raw = plugin.getStatsManager().getLeaderboard(modeId, stat,
+                    Math.min(limit, 10));
 
             List<LeaderboardEntry> snapshot = new ArrayList<>(raw.size());
             for (Map.Entry<UUID, PlayerStats> e : raw) {
@@ -352,18 +367,19 @@ public class DuelsExpansion extends PlaceholderExpansion {
 
     private String resolvePlayerName(UUID uuid) {
         Player online = Bukkit.getPlayer(uuid);
-        if (online != null) return online.getName();
+        if (online != null)
+            return online.getName();
         OfflinePlayer op = Bukkit.getOfflinePlayer(uuid);
         return op.getName() != null ? op.getName() : uuid.toString().substring(0, 8);
     }
 
     private int statValue(PlayerStats stats, String stat) {
         return switch (stat.toLowerCase()) {
-            case "elo"        -> stats.getElo();
-            case "wins"       -> stats.getWins();
-            case "kills"      -> stats.getKills();
-            case "winstreak"  -> stats.getBestWinStreak();
-            default           -> stats.getElo();
+            case "elo" -> stats.getElo();
+            case "wins" -> stats.getWins();
+            case "kills" -> stats.getKills();
+            case "winstreak" -> stats.getBestWinStreak();
+            default -> stats.getElo();
         };
     }
 
@@ -371,5 +387,6 @@ public class DuelsExpansion extends PlaceholderExpansion {
     // Internal record
     // -------------------------------------------------------------------------
 
-    private record LeaderboardEntry(UUID uuid, String name, int value) {}
+    private record LeaderboardEntry(UUID uuid, String name, int value) {
+    }
 }

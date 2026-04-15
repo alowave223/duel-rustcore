@@ -122,7 +122,7 @@ public class LobbyListener implements Listener {
         // Give lobby items on join (after a tick to ensure world is loaded)
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline() && !plugin.getDuelManager().isInDuel(player.getUniqueId())) {
-                plugin.getLobbyManager().sendToLobby(player);
+                plugin.getLobbyManager().sendToHub(player);
             }
         }, 5L);
     }

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "mcp__plugin_context-mode_context-mode__ctx_batch_execute",
-      "Bash(find /c/Users/alowave/Documents/duel-rustcore -type f -name *.xml -o -name *.gradle -o -name pom.xml)"
+      "Bash(find /c/Users/alowave/Documents/duel-rustcore -type f -name *.xml -o -name *.gradle -o -name pom.xml)",
+      "mcp__code-review-graph__build_or_update_graph_tool"
     ]
   },
   "bypassPermissions": true

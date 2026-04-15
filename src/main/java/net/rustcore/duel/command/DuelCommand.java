@@ -48,8 +48,8 @@ public class DuelCommand implements TabExecutor {
             default -> {
                 // Treat as a player name for challenge
                 if (sender instanceof Player) {
-                    yield handleChallenge(sender, new String[]{"challenge", sub,
-                            args.length > 1 ? args[1] : defaultModeId()});
+                    yield handleChallenge(sender, new String[] { "challenge", sub,
+                            args.length > 1 ? args[1] : defaultModeId() });
                 }
                 sendHelp(sender);
                 yield true;
@@ -113,8 +113,9 @@ public class DuelCommand implements TabExecutor {
 
         // Determine the target player
         // From console: /duel queue <playerName> [mode] [bestOf]
-        // From player:  /duel queue [mode] [bestOf]  (targets self)
-        //               /duel queue <playerName> [mode] [bestOf] (targets other, requires duels.admin)
+        // From player: /duel queue [mode] [bestOf] (targets self)
+        // /duel queue <playerName> [mode] [bestOf] (targets other, requires
+        // duels.admin)
         Player target;
         int modeArgIndex;
 
@@ -287,7 +288,8 @@ public class DuelCommand implements TabExecutor {
     }
 
     private boolean handleAccept(CommandSender sender) {
-        if (!(sender instanceof Player player)) return true;
+        if (!(sender instanceof Player player))
+            return true;
         if (!player.hasPermission("duels.queue")) {
             player.sendMessage(CC.parse(plugin.getMessage("prefix"))
                     .append(CC.parse(plugin.getMessage("no-permission"))));
@@ -298,7 +300,8 @@ public class DuelCommand implements TabExecutor {
     }
 
     private boolean handleDecline(CommandSender sender) {
-        if (!(sender instanceof Player player)) return true;
+        if (!(sender instanceof Player player))
+            return true;
         plugin.getDuelManager().declineRequest(player);
         return true;
     }
