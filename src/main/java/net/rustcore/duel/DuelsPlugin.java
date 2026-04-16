@@ -3,8 +3,10 @@ package net.rustcore.duel;
 import net.rustcore.duel.arena.ArenaManager;
 import net.rustcore.duel.arena.SlimeArenaManager;
 import net.rustcore.duel.command.DuelCommand;
+import net.rustcore.duel.command.FriendCommand;
 import net.rustcore.duel.command.HubCommand;
 import net.rustcore.duel.command.LobbyCommand;
+import net.rustcore.duel.friend.FriendManager;
 import net.rustcore.duel.placeholder.DuelsExpansion;
 import net.rustcore.duel.duel.DuelManager;
 import net.rustcore.duel.listener.ArenaProtectionListener;
@@ -28,6 +30,7 @@ public class DuelsPlugin extends JavaPlugin {
     private StatsManager statsManager;
     private LobbyManager lobbyManager;
     private SlimeArenaManager slimeArenaManager;
+    private FriendManager friendManager;
 
     @Override
     public void onEnable() {
@@ -48,6 +51,8 @@ public class DuelsPlugin extends JavaPlugin {
         duelManager = new DuelManager(this);
         statsManager = new StatsManager(this);
         lobbyManager = new LobbyManager(this);
+        friendManager = new FriendManager(this);
+        friendManager.load();
 
         // Load
         arenaManager.load();
@@ -69,6 +74,7 @@ public class DuelsPlugin extends JavaPlugin {
         getCommand("duel").setTabCompleter(duelCommand);
         getCommand("hub").setExecutor(new HubCommand(this));
         getCommand("lobby").setExecutor(new LobbyCommand(this));
+        getCommand("f").setExecutor(new FriendCommand(this));
 
         // Register BungeeCord plugin messaging channel
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
@@ -90,6 +96,10 @@ public class DuelsPlugin extends JavaPlugin {
         }
         if (duelManager != null) {
             duelManager.saveRankedSync();
+        }
+
+        if (friendManager != null) {
+            friendManager.save();
         }
 
         if (slimeArenaManager != null) {
@@ -166,5 +176,16 @@ public class DuelsPlugin extends JavaPlugin {
 
     public SlimeArenaManager getSlimeArenaManager() {
         return slimeArenaManager;
+    }
+
+    public FriendManager getFriendManager() {
+        return friendManager;
+    }
+
+    /**
+     * Temporary stub — replaced by real SettingsManager in Task 8.
+     */
+    public net.rustcore.duel.settings.SettingsManager getSettingsManager() {
+        return null;
     }
 }
