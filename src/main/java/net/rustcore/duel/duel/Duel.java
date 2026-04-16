@@ -338,7 +338,10 @@ public class Duel {
                     "{wins}", String.valueOf(wins),
                     "{losses}", String.valueOf(losses)));
 
-            boolean isRanked = plugin.getDuelManager().isRanked(winnerId) && plugin.getDuelManager().isRanked(loserId);
+            Object forcedUnranked = getMeta("forced-unranked");
+            boolean isRanked = !(forcedUnranked instanceof Boolean b && b)
+                    && plugin.getDuelManager().isRanked(winnerId)
+                    && plugin.getDuelManager().isRanked(loserId);
 
             if (isRanked)
                 plugin.getStatsManager().recordResult(mode.getId(), winnerId, loserId);
@@ -423,7 +426,9 @@ public class Duel {
         if (winnerId != null && disconnectedPlayer != null) {
             Player winner = Bukkit.getPlayer(winnerId);
 
-            boolean isRanked = plugin.getDuelManager().isRanked(winnerId)
+            Object forcedUnranked = getMeta("forced-unranked");
+            boolean isRanked = !(forcedUnranked instanceof Boolean b && b)
+                    && plugin.getDuelManager().isRanked(winnerId)
                     && plugin.getDuelManager().isRanked(disconnectedPlayer);
 
             if (winner != null) {

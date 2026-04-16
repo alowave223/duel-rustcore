@@ -117,7 +117,7 @@ public class DuelManager {
             return;
         }
 
-        DuelRequest request = new DuelRequest(sender.getUniqueId(), target.getUniqueId(), modeId, bestOf);
+        DuelRequest request = new DuelRequest(sender.getUniqueId(), target.getUniqueId(), modeId, bestOf, false);
         pendingRequests.put(target.getUniqueId(), request);
 
         sender.sendMessage(CC.parse(plugin.getMessage("prefix"))
@@ -178,7 +178,7 @@ public class DuelManager {
         target.sendMessage(CC.parse(plugin.getMessage("prefix"))
                 .append(CC.parse(plugin.getMessage("duel-accepted"))));
 
-        createDuel(request.modeId(), List.of(sender, target), request.bestOf());
+        createDuel(request.modeId(), List.of(sender, target), request.bestOf(), !request.ranked());
     }
 
     /**
@@ -201,6 +201,13 @@ public class DuelManager {
      * Create and start a new duel.
      */
     public void createDuel(String modeId, List<Player> players, int bestOf) {
+        createDuel(modeId, players, bestOf, false);
+    }
+
+    /**
+     * Create and start a new duel, optionally forcing unranked (no ELO) outcome.
+     */
+    public void createDuel(String modeId, List<Player> players, int bestOf, boolean forcedUnranked) {
         DuelMode mode = plugin.getModeManager().getMode(modeId);
         if (mode == null) {
             for (Player p : players) {
@@ -234,6 +241,9 @@ public class DuelManager {
             // Back on the main thread (allocateArena completes on the main thread).
             // duel.getId() == duelId == activeArena.getDuelId()
             Duel duel = new Duel(plugin, mode, activeArena, playerIds, bestOf);
+            if (forcedUnranked) {
+                duel.setMeta("forced-unranked", true);
+            }
             activeDuels.put(duelId, duel);
             // Arena is ready — remove allocating guard before starting the round
             for (UUID pid : playerIds) {
@@ -354,6 +364,6 @@ public class DuelManager {
         }
     }
 
-    public record DuelRequest(UUID senderId, UUID targetId, String modeId, int bestOf) {
+    public record DuelRequest(UUID senderId, UUID targetId, String modeId, int bestOf, boolean ranked) {
     }
 }
