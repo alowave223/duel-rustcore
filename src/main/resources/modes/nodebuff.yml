@@ -1,0 +1,23 @@
+id: nodebuff
+display-name: "<red>NoDebuff"
+description: "Pure PvP with potions"
+icon: SPLASH_POTION
+enabled: true
+type: fixed
+default-best-of: 1
+available-best-of: [1, 3, 5]
+fixed-kit:
+  helmet: DIAMOND_HELMET
+  chestplate: DIAMOND_CHESTPLATE
+  leggings: DIAMOND_LEGGINGS
+  boots: DIAMOND_BOOTS
+  hotbar:
+    0: DIAMOND_SWORD
+    1: SPLASH_POTION:INSTANT_HEAL:2
+    2: SPLASH_POTION:INSTANT_HEAL:2
+    3: SPLASH_POTION:INSTANT_HEAL:2
+    4: SPLASH_POTION:INSTANT_HEAL:2
+    5: SPLASH_POTION:INSTANT_HEAL:2
+    6: SPLASH_POTION:INSTANT_HEAL:2
+    7: GOLDEN_APPLE
+    8: WATER_BUCKET

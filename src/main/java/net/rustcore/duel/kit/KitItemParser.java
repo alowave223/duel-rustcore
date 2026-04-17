@@ -4,7 +4,10 @@ import net.rustcore.duel.util.ItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -104,13 +107,24 @@ public final class KitItemParser {
             case "minecraft" -> parseVanillaItem(itemId, amount);
             case "executableitems" -> parseExecutableItem(itemId, amount);
             default -> {
-                LOGGER.warning("Unknown item namespace: " + namespace);
-                yield null;
+                // If the first token is a vanilla material (e.g. "SPLASH_POTION:INSTANT_HEAL:2"),
+                // treat the whole string as a potion descriptor rather than a namespaced id.
+                try {
+                    Material.valueOf(parts[0].toUpperCase());
+                    yield parsePotionItem(id, amount);
+                } catch (IllegalArgumentException ignored) {
+                    LOGGER.warning("Unknown item namespace: " + namespace);
+                    yield null;
+                }
             }
         };
     }
 
     private static ItemStack parseVanillaItem(String materialName, int amount) {
+        // Support "MATERIAL:EFFECT:LEVEL" (e.g. "SPLASH_POTION:INSTANT_HEAL:2")
+        if (materialName.contains(":")) {
+            return parsePotionItem(materialName, amount);
+        }
         try {
             Material mat = Material.valueOf(materialName.toUpperCase());
             return new ItemStack(mat, amount);
@@ -118,6 +132,56 @@ public final class KitItemParser {
             LOGGER.warning("Unknown material: " + materialName);
             return null;
         }
+    }
+
+    /**
+     * Parse a potion descriptor: MATERIAL:EFFECT:LEVEL[:DURATION_TICKS]
+     * E.g. SPLASH_POTION:INSTANT_HEAL:2 or POTION:SPEED:2:3600
+     */
+    private static ItemStack parsePotionItem(String descriptor, int amount) {
+        String[] parts = descriptor.split(":");
+        if (parts.length < 3) {
+            LOGGER.warning("Invalid potion descriptor (need MATERIAL:EFFECT:LEVEL): " + descriptor);
+            return null;
+        }
+        Material mat;
+        try {
+            mat = Material.valueOf(parts[0].toUpperCase());
+        } catch (IllegalArgumentException e) {
+            LOGGER.warning("Unknown material in potion descriptor: " + parts[0]);
+            return null;
+        }
+        PotionEffectType effectType = PotionEffectType.getByName(parts[1].toUpperCase());
+        if (effectType == null) {
+            LOGGER.warning("Unknown potion effect: " + parts[1]);
+            return null;
+        }
+        int level;
+        try {
+            level = Integer.parseInt(parts[2]);
+        } catch (NumberFormatException e) {
+            LOGGER.warning("Invalid potion level: " + parts[2]);
+            return null;
+        }
+        int durationTicks;
+        if (parts.length >= 4) {
+            try {
+                durationTicks = Integer.parseInt(parts[3]);
+            } catch (NumberFormatException e) {
+                LOGGER.warning("Invalid potion duration: " + parts[3]);
+                return null;
+            }
+        } else {
+            // Instant effects use duration 1; continuous effects default to very long duration.
+            durationTicks = effectType.isInstant() ? 1 : 1_000_000;
+        }
+
+        ItemStack stack = new ItemStack(mat, amount);
+        if (stack.getItemMeta() instanceof PotionMeta pm) {
+            pm.addCustomEffect(new PotionEffect(effectType, durationTicks, Math.max(0, level - 1)), true);
+            stack.setItemMeta(pm);
+        }
+        return stack;
     }
 
     private static ItemStack parseExecutableItem(String itemId, int amount) {

@@ -1,8 +1,11 @@
 package net.rustcore.duel.mode;
 
 import net.rustcore.duel.DuelsPlugin;
+import net.rustcore.duel.mode.impl.FixedKitMode;
 import net.rustcore.duel.mode.impl.KitBuilderMode;
+import org.bukkit.configuration.file.YamlConfiguration;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -22,15 +25,42 @@ public class ModeManager {
     public void load() {
         modes.clear();
 
-        // Register built-in modes
+        File modesDir = new File(plugin.getDataFolder(), "modes");
+        if (!modesDir.exists()) {
+            modesDir.mkdirs();
+        }
+
+        // Legacy default kitbuilder for back-compat
         KitBuilderMode kitBuilder = new KitBuilderMode(plugin);
         kitBuilder.load();
         if (kitBuilder.isEnabled()) {
             modes.put(kitBuilder.getId(), kitBuilder);
         }
 
-        // Future modes can be registered here
-        // e.g., PotPvPMode, SoupMode, ClassicMode, etc.
+        File[] files = modesDir.listFiles((d, n) -> n.endsWith(".yml"));
+        if (files != null) {
+            for (File f : files) {
+                YamlConfiguration yml = YamlConfiguration.loadConfiguration(f);
+                String id = yml.getString("id", f.getName().replace(".yml", ""));
+                String type = yml.getString("type", "kitbuilder").toLowerCase();
+                try {
+                    switch (type) {
+                        case "fixed" -> {
+                            FixedKitMode m = new FixedKitMode(plugin, id, yml);
+                            if (m.isEnabled()) {
+                                modes.put(m.getId(), m);
+                            }
+                        }
+                        case "kitbuilder" -> {
+                            // already registered as default; per-file kitbuilder variants not supported yet
+                        }
+                        default -> plugin.getLogger().warning("Unknown mode type '" + type + "' in " + f.getName());
+                    }
+                } catch (Exception ex) {
+                    plugin.getLogger().warning("Failed to load mode " + id + ": " + ex.getMessage());
+                }
+            }
+        }
 
         plugin.getLogger().info("Loaded " + modes.size() + " duel mode(s)");
     }

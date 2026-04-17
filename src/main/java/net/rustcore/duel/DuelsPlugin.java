@@ -204,4 +204,9 @@ public class DuelsPlugin extends JavaPlugin {
     public SettingsManager getSettingsManager() {
         return settingsManager;
     }
+
+    // Stub — replaced by Task 10 with a real manager.
+    public net.rustcore.duel.kit.KitLayoutManager getKitLayoutManager() {
+        return null;
+    }
 }
