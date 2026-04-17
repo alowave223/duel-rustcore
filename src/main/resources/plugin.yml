@@ -23,10 +23,14 @@ commands:
   lobby:
     description: Return to the network lobby server
     usage: /<command>
-  f:
+  friend:
     description: Friend system
     usage: /<command> [add|remove|list|accept|decline] [player]
-    aliases: [ friend, friends ]
+    aliases: [ f, friends ]
+  party:
+    description: Party system
+    usage: /<command> [invite|accept|decline|leave|kick|disband|list] [player]
+    aliases: [ p ]
 
 permissions:
   duels.admin:
@@ -58,4 +62,7 @@ permissions:
     default: true
   duels.friends:
     description: Use friend system
+    default: true
+  duels.party:
+    description: Use party system
     default: true

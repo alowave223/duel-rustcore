@@ -6,7 +6,9 @@ import net.rustcore.duel.command.DuelCommand;
 import net.rustcore.duel.command.FriendCommand;
 import net.rustcore.duel.command.HubCommand;
 import net.rustcore.duel.command.LobbyCommand;
+import net.rustcore.duel.command.PartyCommand;
 import net.rustcore.duel.friend.FriendManager;
+import net.rustcore.duel.party.PartyManager;
 import net.rustcore.duel.placeholder.DuelsExpansion;
 import net.rustcore.duel.duel.DuelManager;
 import net.rustcore.duel.listener.ArenaProtectionListener;
@@ -31,6 +33,7 @@ public class DuelsPlugin extends JavaPlugin {
     private LobbyManager lobbyManager;
     private SlimeArenaManager slimeArenaManager;
     private FriendManager friendManager;
+    private PartyManager partyManager;
 
     @Override
     public void onEnable() {
@@ -53,6 +56,7 @@ public class DuelsPlugin extends JavaPlugin {
         lobbyManager = new LobbyManager(this);
         friendManager = new FriendManager(this);
         friendManager.load();
+        partyManager = new PartyManager(this);
 
         // Load
         arenaManager.load();
@@ -75,6 +79,7 @@ public class DuelsPlugin extends JavaPlugin {
         getCommand("hub").setExecutor(new HubCommand(this));
         getCommand("lobby").setExecutor(new LobbyCommand(this));
         getCommand("f").setExecutor(new FriendCommand(this));
+        getCommand("party").setExecutor(new PartyCommand(this));
 
         // Register BungeeCord plugin messaging channel
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
@@ -180,6 +185,10 @@ public class DuelsPlugin extends JavaPlugin {
 
     public FriendManager getFriendManager() {
         return friendManager;
+    }
+
+    public PartyManager getPartyManager() {
+        return partyManager;
     }
 
     /**
