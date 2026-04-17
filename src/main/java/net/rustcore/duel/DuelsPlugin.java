@@ -5,10 +5,13 @@ import net.rustcore.duel.arena.SlimeArenaManager;
 import net.rustcore.duel.command.DuelCommand;
 import net.rustcore.duel.command.FriendCommand;
 import net.rustcore.duel.command.HubCommand;
+import net.rustcore.duel.command.KitLayoutCommand;
 import net.rustcore.duel.command.LobbyCommand;
 import net.rustcore.duel.command.PartyCommand;
 import net.rustcore.duel.command.SettingsCommand;
 import net.rustcore.duel.friend.FriendManager;
+import net.rustcore.duel.kit.KitLayoutManager;
+import net.rustcore.duel.listener.KitLayoutEditorListener;
 import net.rustcore.duel.party.PartyManager;
 import net.rustcore.duel.settings.SettingsManager;
 import net.rustcore.duel.placeholder.DuelsExpansion;
@@ -37,6 +40,7 @@ public class DuelsPlugin extends JavaPlugin {
     private FriendManager friendManager;
     private PartyManager partyManager;
     private SettingsManager settingsManager;
+    private KitLayoutManager kitLayoutManager;
 
     @Override
     public void onEnable() {
@@ -62,6 +66,8 @@ public class DuelsPlugin extends JavaPlugin {
         partyManager = new PartyManager(this);
         settingsManager = new SettingsManager(this);
         settingsManager.load();
+        kitLayoutManager = new KitLayoutManager(this);
+        kitLayoutManager.load();
 
         // Load
         arenaManager.load();
@@ -76,6 +82,7 @@ public class DuelsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ArenaProtectionListener(this), this);
         getServer().getPluginManager().registerEvents(new KitMenuListener(this), this);
         getServer().getPluginManager().registerEvents(new LobbyListener(this), this);
+        getServer().getPluginManager().registerEvents(new KitLayoutEditorListener(this), this);
 
         // Register commands
         DuelCommand duelCommand = new DuelCommand(this);
@@ -86,6 +93,7 @@ public class DuelsPlugin extends JavaPlugin {
         getCommand("f").setExecutor(new FriendCommand(this));
         getCommand("party").setExecutor(new PartyCommand(this));
         getCommand("dsettings").setExecutor(new SettingsCommand(this));
+        getCommand("kitlayout").setExecutor(new KitLayoutCommand(this));
 
         // Register BungeeCord plugin messaging channel
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
@@ -115,6 +123,10 @@ public class DuelsPlugin extends JavaPlugin {
 
         if (settingsManager != null) {
             settingsManager.save();
+        }
+
+        if (kitLayoutManager != null) {
+            kitLayoutManager.save();
         }
 
         if (slimeArenaManager != null) {
@@ -205,8 +217,7 @@ public class DuelsPlugin extends JavaPlugin {
         return settingsManager;
     }
 
-    // Stub — replaced by Task 10 with a real manager.
-    public net.rustcore.duel.kit.KitLayoutManager getKitLayoutManager() {
-        return null;
+    public KitLayoutManager getKitLayoutManager() {
+        return kitLayoutManager;
     }
 }

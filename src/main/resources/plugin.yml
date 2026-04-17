@@ -34,6 +34,10 @@ commands:
   dsettings:
     description: Duel privacy settings
     usage: /<command> [party|challenge|friendrequests|status] [value]
+  kitlayout:
+    description: Per-player kit layout editor for fixed-kit modes
+    usage: /<command> <edit|reset|show> <mode>
+    aliases: [ kl ]
 
 permissions:
   duels.admin:
@@ -71,4 +75,7 @@ permissions:
     default: true
   duels.settings:
     description: Edit duel privacy settings
+    default: true
+  duels.kitlayout:
+    description: Edit per-player kit layout for fixed-kit modes
     default: true

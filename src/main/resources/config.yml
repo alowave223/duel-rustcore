@@ -289,3 +289,11 @@ messages:
   settings-line-status: "  <yellow>Status: <white><value>"
   settings-footer: "<gray>Change with /dsettings <key> <value>"
   challenge-blocked: "<red><player> <red>is not accepting duel challenges."
+  # Kit Layout
+  kitlayout-usage: "<gray>Usage: <white>/kitlayout <edit|reset|show> <mode>"
+  kitlayout-not-fixed: "<red>That mode does not use a fixed kit."
+  kitlayout-reset: "<green>Kit layout for <white><mode> <green>reset to default."
+  kitlayout-saved: "<green>Kit layout for <white><mode> <green>saved."
+  kitlayout-show-default: "<gray>No custom layout for <white><mode><gray>. Using defaults."
+  kitlayout-show-header: "<gold>Kit layout for <white><mode><gold>:"
+  kitlayout-show-entry: "  <gray>Original slot <white><orig> <gray>-> <white><target>"
