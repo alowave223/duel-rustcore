@@ -31,6 +31,9 @@ commands:
     description: Party system
     usage: /<command> [invite|accept|decline|leave|kick|disband|list] [player]
     aliases: [ p ]
+  dsettings:
+    description: Duel privacy settings
+    usage: /<command> [party|challenge|friendrequests|status] [value]
 
 permissions:
   duels.admin:
@@ -65,4 +68,7 @@ permissions:
     default: true
   duels.party:
     description: Use party system
+    default: true
+  duels.settings:
+    description: Edit duel privacy settings
     default: true

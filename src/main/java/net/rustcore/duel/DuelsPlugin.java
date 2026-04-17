@@ -7,8 +7,10 @@ import net.rustcore.duel.command.FriendCommand;
 import net.rustcore.duel.command.HubCommand;
 import net.rustcore.duel.command.LobbyCommand;
 import net.rustcore.duel.command.PartyCommand;
+import net.rustcore.duel.command.SettingsCommand;
 import net.rustcore.duel.friend.FriendManager;
 import net.rustcore.duel.party.PartyManager;
+import net.rustcore.duel.settings.SettingsManager;
 import net.rustcore.duel.placeholder.DuelsExpansion;
 import net.rustcore.duel.duel.DuelManager;
 import net.rustcore.duel.listener.ArenaProtectionListener;
@@ -34,6 +36,7 @@ public class DuelsPlugin extends JavaPlugin {
     private SlimeArenaManager slimeArenaManager;
     private FriendManager friendManager;
     private PartyManager partyManager;
+    private SettingsManager settingsManager;
 
     @Override
     public void onEnable() {
@@ -57,6 +60,8 @@ public class DuelsPlugin extends JavaPlugin {
         friendManager = new FriendManager(this);
         friendManager.load();
         partyManager = new PartyManager(this);
+        settingsManager = new SettingsManager(this);
+        settingsManager.load();
 
         // Load
         arenaManager.load();
@@ -80,6 +85,7 @@ public class DuelsPlugin extends JavaPlugin {
         getCommand("lobby").setExecutor(new LobbyCommand(this));
         getCommand("f").setExecutor(new FriendCommand(this));
         getCommand("party").setExecutor(new PartyCommand(this));
+        getCommand("dsettings").setExecutor(new SettingsCommand(this));
 
         // Register BungeeCord plugin messaging channel
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
@@ -105,6 +111,10 @@ public class DuelsPlugin extends JavaPlugin {
 
         if (friendManager != null) {
             friendManager.save();
+        }
+
+        if (settingsManager != null) {
+            settingsManager.save();
         }
 
         if (slimeArenaManager != null) {
@@ -191,10 +201,7 @@ public class DuelsPlugin extends JavaPlugin {
         return partyManager;
     }
 
-    /**
-     * Temporary stub — replaced by real SettingsManager in Task 8.
-     */
-    public net.rustcore.duel.settings.SettingsManager getSettingsManager() {
-        return null;
+    public SettingsManager getSettingsManager() {
+        return settingsManager;
     }
 }

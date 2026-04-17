@@ -2,6 +2,7 @@ package net.rustcore.duel.duel;
 
 import net.rustcore.duel.DuelsPlugin;
 import net.rustcore.duel.mode.DuelMode;
+import net.rustcore.duel.settings.PlayerSettings;
 import net.rustcore.duel.util.CC;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -115,6 +116,22 @@ public class DuelManager {
             sender.sendMessage(CC.parse(plugin.getMessage("prefix"))
                     .append(CC.parse(plugin.getMessage("already-in-duel-target"))));
             return;
+        }
+
+        if (plugin.getSettingsManager() != null) {
+            PlayerSettings s = plugin.getSettingsManager().getSettings(target.getUniqueId());
+            if (s.getStatus() == PlayerSettings.Status.DO_NOT_DISTURB
+                    || s.getWhoCanChallenge() == PlayerSettings.Visibility.NOBODY) {
+                sender.sendMessage(CC.parse(plugin.getMessage("prefix"))
+                        .append(CC.parse(plugin.getMessage("challenge-blocked"), "{player}", target.getName())));
+                return;
+            }
+            if (s.getWhoCanChallenge() == PlayerSettings.Visibility.FRIENDS_ONLY
+                    && !plugin.getFriendManager().isFriend(sender.getUniqueId(), target.getUniqueId())) {
+                sender.sendMessage(CC.parse(plugin.getMessage("prefix"))
+                        .append(CC.parse(plugin.getMessage("challenge-blocked"), "{player}", target.getName())));
+                return;
+            }
         }
 
         DuelRequest request = new DuelRequest(sender.getUniqueId(), target.getUniqueId(), modeId, bestOf, false);
