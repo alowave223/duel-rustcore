@@ -297,3 +297,15 @@ messages:
   kitlayout-show-default: "<gray>No custom layout for <white><mode><gray>. Using defaults."
   kitlayout-show-header: "<gold>Kit layout for <white><mode><gold>:"
   kitlayout-show-entry: "  <gray>Original slot <white><orig> <gray>-> <white><target>"
+
+# ============================================================
+# Database (MySQL)
+# ============================================================
+database:
+  host: localhost
+  port: 3306
+  name: duels
+  user: duels
+  password: "change-me"
+  pool-size: 8
+  use-ssl: false
