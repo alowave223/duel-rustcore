@@ -23,6 +23,9 @@ import net.rustcore.duel.listener.LobbyListener;
 import net.rustcore.duel.lobby.LobbyManager;
 import net.rustcore.duel.mode.DuelMode;
 import net.rustcore.duel.mode.ModeManager;
+import net.rustcore.duel.db.Database;
+import net.rustcore.duel.db.Migrations;
+import net.rustcore.duel.db.dao.StatsDao;
 import net.rustcore.duel.stats.StatsManager;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -31,6 +34,7 @@ import java.io.File;
 
 public class DuelsPlugin extends JavaPlugin {
 
+    private Database database;
     private ArenaManager arenaManager;
     private ModeManager modeManager;
     private DuelManager duelManager;
@@ -59,7 +63,19 @@ public class DuelsPlugin extends JavaPlugin {
         getLogger().info("SlimeWorldManager arena system initialized.");
         modeManager = new ModeManager(this);
         duelManager = new DuelManager(this);
-        statsManager = new StatsManager(this);
+        try {
+            database = Database.forJdbc(
+                    getConfig().getString("db.jdbc-url", "jdbc:h2:mem:duels;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1"),
+                    getConfig().getString("db.user", "sa"),
+                    getConfig().getString("db.password", ""),
+                    getConfig().getInt("db.max-pool-size", 10));
+            new Migrations(database.dataSource()).apply();
+        } catch (Exception e) {
+            getLogger().severe("Database init failed: " + e.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        statsManager = new StatsManager(this, new StatsDao(database.dataSource()));
         lobbyManager = new LobbyManager(this);
         friendManager = new FriendManager(this);
         friendManager.load();
@@ -152,12 +168,11 @@ public class DuelsPlugin extends JavaPlugin {
             File modeConfigFile = new File(getDataFolder(), "modes/" + mode.getId() + ".yml");
             if (modeConfigFile.exists()) {
                 YamlConfiguration modeConfig = YamlConfiguration.loadConfiguration(modeConfigFile);
-                String statsFile = modeConfig.getString("stats.file", "stats/" + mode.getId() + "_stats.yml");
                 int startingElo = modeConfig.getInt("stats.starting-elo", 1000);
                 int eloKFactor = modeConfig.getInt("stats.elo-k-factor", 32);
-                statsManager.registerMode(mode.getId(), statsFile, startingElo, eloKFactor);
+                statsManager.registerMode(mode.getId(), startingElo, eloKFactor);
             } else {
-                statsManager.registerMode(mode.getId(), "stats/" + mode.getId() + "_stats.yml", 1000, 32);
+                statsManager.registerMode(mode.getId(), 1000, 32);
             }
         }
     }
