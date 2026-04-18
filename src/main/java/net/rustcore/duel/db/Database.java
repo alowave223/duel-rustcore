@@ -1,9 +1,9 @@
 package net.rustcore.duel.db;
 
+import javax.sql.DataSource;
+
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-
-import javax.sql.DataSource;
 
 public final class Database {
 

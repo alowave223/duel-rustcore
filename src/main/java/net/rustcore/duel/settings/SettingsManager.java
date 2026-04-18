@@ -29,6 +29,4 @@ public class SettingsManager {
         dao.upsert(u, s);
     }
 
-    public void load() { /* lazy */ }
-    public void save() { /* writes synchronous */ }
 }

@@ -88,12 +88,9 @@ public class DuelsPlugin extends JavaPlugin {
         statsManager = new StatsManager(this, statsDao);
         lobbyManager = new LobbyManager(this);
         friendManager = new FriendManager(this, friendsDao);
-        friendManager.load();
         partyManager = new PartyManager(this);
         settingsManager = new SettingsManager(this, settingsDao);
-        settingsManager.load();
         kitLayoutManager = new KitLayoutManager(this, kitLayoutsDao);
-        kitLayoutManager.load();
 
         // Load
         arenaManager.load();
@@ -140,24 +137,8 @@ public class DuelsPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Save all stats and ranked preferences
         if (statsManager != null) {
             statsManager.saveAll();
-        }
-        if (duelManager != null) {
-            duelManager.saveRankedSync();
-        }
-
-        if (friendManager != null) {
-            friendManager.save();
-        }
-
-        if (settingsManager != null) {
-            settingsManager.save();
-        }
-
-        if (kitLayoutManager != null) {
-            kitLayoutManager.save();
         }
 
         if (slimeArenaManager != null) {

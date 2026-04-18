@@ -339,8 +339,6 @@ public class DuelManager {
         setRanked(playerId, !isRanked(playerId));
     }
 
-    public void saveRankedSync() { /* writes are synchronous on mutation */ }
-
     public record DuelRequest(UUID senderId, UUID targetId, String modeId, int bestOf, boolean ranked) {
     }
 }

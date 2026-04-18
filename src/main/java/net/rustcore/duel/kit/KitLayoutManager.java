@@ -47,6 +47,4 @@ public class KitLayoutManager {
         dao.deleteLayout(uid, modeId);
     }
 
-    public void load() { /* lazy */ }
-    public void save() { /* synchronous writes on mutation */ }
 }

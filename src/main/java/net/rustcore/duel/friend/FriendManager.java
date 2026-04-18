@@ -80,6 +80,4 @@ public class FriendManager {
         return r;
     }
 
-    public void load() { /* lazy hydration */ }
-    public void save() { /* writes synchronous */ }
 }
