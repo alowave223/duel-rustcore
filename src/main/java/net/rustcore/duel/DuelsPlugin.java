@@ -24,6 +24,8 @@ import net.rustcore.duel.lobby.LobbyManager;
 import net.rustcore.duel.mode.DuelMode;
 import net.rustcore.duel.mode.ModeManager;
 import net.rustcore.duel.db.Database;
+import net.rustcore.duel.db.DatabaseConfig;
+import net.rustcore.duel.db.MigrationService;
 import net.rustcore.duel.db.Migrations;
 import net.rustcore.duel.db.dao.FriendsDao;
 import net.rustcore.duel.db.dao.KitLayoutsDao;
@@ -67,32 +69,39 @@ public class DuelsPlugin extends JavaPlugin {
         getLogger().info("SlimeWorldManager arena system initialized.");
         modeManager = new ModeManager(this);
         try {
-            database = Database.forJdbc(
-                    getConfig().getString("db.jdbc-url", "jdbc:h2:mem:duels;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1"),
-                    getConfig().getString("db.user", "sa"),
-                    getConfig().getString("db.password", ""),
-                    getConfig().getInt("db.max-pool-size", 10));
+            DatabaseConfig dbConfig = DatabaseConfig.fromSection(getConfig().getConfigurationSection("database"));
+            this.database = Database.forConfig(dbConfig);
             new Migrations(database.dataSource()).apply();
         } catch (Exception e) {
             getLogger().severe("Database init failed: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
-        duelManager = new DuelManager(this, new RankedPrefsDao(database.dataSource()));
-        statsManager = new StatsManager(this, new StatsDao(database.dataSource()));
+        StatsDao statsDao = new StatsDao(database.dataSource());
+        FriendsDao friendsDao = new FriendsDao(database.dataSource());
+        SettingsDao settingsDao = new SettingsDao(database.dataSource());
+        KitLayoutsDao kitLayoutsDao = new KitLayoutsDao(database.dataSource());
+        RankedPrefsDao rankedPrefsDao = new RankedPrefsDao(database.dataSource());
+
+        duelManager = new DuelManager(this, rankedPrefsDao);
+        statsManager = new StatsManager(this, statsDao);
         lobbyManager = new LobbyManager(this);
-        friendManager = new FriendManager(this, new FriendsDao(database.dataSource()));
+        friendManager = new FriendManager(this, friendsDao);
         friendManager.load();
         partyManager = new PartyManager(this);
-        settingsManager = new SettingsManager(this, new SettingsDao(database.dataSource()));
+        settingsManager = new SettingsManager(this, settingsDao);
         settingsManager.load();
-        kitLayoutManager = new KitLayoutManager(this, new KitLayoutsDao(database.dataSource()));
+        kitLayoutManager = new KitLayoutManager(this, kitLayoutsDao);
         kitLayoutManager.load();
 
         // Load
         arenaManager.load();
         modeManager.load();
         lobbyManager.load();
+
+        // One-shot YAML -> DB migration (no-op after first run due to *.migrated renames)
+        new MigrationService(getDataFolder(), statsDao, friendsDao, settingsDao, kitLayoutsDao, rankedPrefsDao)
+                .runIfNeeded(modeManager.getAllModes().stream().map(DuelMode::getId).toList());
 
         // Register stats for each mode
         registerModeStats();
@@ -158,6 +167,10 @@ public class DuelsPlugin extends JavaPlugin {
             for (var duel : duelManager.getActiveDuels()) {
                 duel.forceEnd(null);
             }
+        }
+
+        if (database != null) {
+            database.shutdown();
         }
 
         getLogger().info("Duels plugin disabled!");
