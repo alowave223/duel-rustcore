@@ -20,6 +20,7 @@ import net.rustcore.duel.listener.ArenaProtectionListener;
 import net.rustcore.duel.listener.DuelListener;
 import net.rustcore.duel.listener.KitMenuListener;
 import net.rustcore.duel.listener.LobbyListener;
+import net.rustcore.duel.listener.PlayerJoinQuitListener;
 import net.rustcore.duel.lobby.LobbyManager;
 import net.rustcore.duel.mode.DuelMode;
 import net.rustcore.duel.mode.ModeManager;
@@ -112,6 +113,7 @@ public class DuelsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new KitMenuListener(this), this);
         getServer().getPluginManager().registerEvents(new LobbyListener(this), this);
         getServer().getPluginManager().registerEvents(new KitLayoutEditorListener(this), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinQuitListener(this), this);
 
         // Register commands
         DuelCommand duelCommand = new DuelCommand(this);
