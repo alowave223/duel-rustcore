@@ -21,7 +21,7 @@ public record DatabaseConfig(
 
     public String jdbcUrl() {
         return "jdbc:mysql://" + host + ":" + port + "/" + database
-                + "?useUnicode=true&characterEncoding=utf8mb4"
+                + "?useUnicode=true&characterEncoding=UTF-8"
                 + "&connectionCollation=utf8mb4_unicode_ci"
                 + "&useSSL=" + useSsl
                 + "&serverTimezone=UTC"
