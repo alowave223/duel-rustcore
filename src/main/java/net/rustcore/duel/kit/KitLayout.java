@@ -14,6 +14,12 @@ public class KitLayout {
 
     private final Map<Integer, Integer> slotRemap = new HashMap<>();
 
+    public KitLayout() {}
+
+    public KitLayout(Map<Integer, Integer> raw) {
+        this.slotRemap.putAll(raw);
+    }
+
     /**
      * Remap an original slot. If no remap is set, returns the original slot.
      */

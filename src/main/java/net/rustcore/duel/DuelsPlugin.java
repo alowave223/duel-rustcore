@@ -26,6 +26,7 @@ import net.rustcore.duel.mode.ModeManager;
 import net.rustcore.duel.db.Database;
 import net.rustcore.duel.db.Migrations;
 import net.rustcore.duel.db.dao.FriendsDao;
+import net.rustcore.duel.db.dao.KitLayoutsDao;
 import net.rustcore.duel.db.dao.SettingsDao;
 import net.rustcore.duel.db.dao.StatsDao;
 import net.rustcore.duel.stats.StatsManager;
@@ -84,7 +85,7 @@ public class DuelsPlugin extends JavaPlugin {
         partyManager = new PartyManager(this);
         settingsManager = new SettingsManager(this, new SettingsDao(database.dataSource()));
         settingsManager.load();
-        kitLayoutManager = new KitLayoutManager(this);
+        kitLayoutManager = new KitLayoutManager(this, new KitLayoutsDao(database.dataSource()));
         kitLayoutManager.load();
 
         // Load
