@@ -56,7 +56,7 @@ public class SettingsCommand implements CommandExecutor {
             return true;
         }
 
-        plugin.getSettingsManager().save();
+        plugin.getSettingsManager().update(player.getUniqueId(), s);
         player.sendMessage(CC.parse(plugin.getMessage("settings-updated")));
         sendCurrent(player, s);
         return true;
