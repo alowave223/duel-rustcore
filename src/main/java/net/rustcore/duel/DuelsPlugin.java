@@ -27,6 +27,7 @@ import net.rustcore.duel.db.Database;
 import net.rustcore.duel.db.Migrations;
 import net.rustcore.duel.db.dao.FriendsDao;
 import net.rustcore.duel.db.dao.KitLayoutsDao;
+import net.rustcore.duel.db.dao.RankedPrefsDao;
 import net.rustcore.duel.db.dao.SettingsDao;
 import net.rustcore.duel.db.dao.StatsDao;
 import net.rustcore.duel.stats.StatsManager;
@@ -65,7 +66,6 @@ public class DuelsPlugin extends JavaPlugin {
         }
         getLogger().info("SlimeWorldManager arena system initialized.");
         modeManager = new ModeManager(this);
-        duelManager = new DuelManager(this);
         try {
             database = Database.forJdbc(
                     getConfig().getString("db.jdbc-url", "jdbc:h2:mem:duels;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1"),
@@ -78,6 +78,7 @@ public class DuelsPlugin extends JavaPlugin {
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
+        duelManager = new DuelManager(this, new RankedPrefsDao(database.dataSource()));
         statsManager = new StatsManager(this, new StatsDao(database.dataSource()));
         lobbyManager = new LobbyManager(this);
         friendManager = new FriendManager(this, new FriendsDao(database.dataSource()));

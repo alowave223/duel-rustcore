@@ -1,16 +1,13 @@
 package net.rustcore.duel.duel;
 
 import net.rustcore.duel.DuelsPlugin;
+import net.rustcore.duel.db.dao.RankedPrefsDao;
 import net.rustcore.duel.mode.DuelMode;
 import net.rustcore.duel.settings.PlayerSettings;
 import net.rustcore.duel.util.CC;
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,14 +29,11 @@ public class DuelManager {
     // Duel requests: targetUUID -> DuelRequest
     private final Map<UUID, DuelRequest> pendingRequests = new ConcurrentHashMap<>();
 
-    // Ranked preference: playerId -> isRanked (default false = unranked)
-    private final Map<UUID, Boolean> rankedPreference = new ConcurrentHashMap<>();
-    private File rankedFile;
-    private YamlConfiguration rankedConfig;
+    private final RankedPreferenceStore rankedStore;
 
-    public DuelManager(DuelsPlugin plugin) {
+    public DuelManager(DuelsPlugin plugin, RankedPrefsDao rankedDao) {
         this.plugin = plugin;
-        loadRankedPreferences();
+        this.rankedStore = new RankedPreferenceStore(rankedDao);
     }
 
     /**
@@ -334,52 +328,18 @@ public class DuelManager {
     // ── Ranked preference ──────────────────────────────────────────
 
     public boolean isRanked(UUID playerId) {
-        return rankedPreference.getOrDefault(playerId, false);
+        return rankedStore.isRanked(playerId);
     }
 
     public void setRanked(UUID playerId, boolean ranked) {
-        rankedPreference.put(playerId, ranked);
-        saveRankedAsync();
+        rankedStore.setRanked(playerId, ranked);
     }
 
     public void toggleRanked(UUID playerId) {
         setRanked(playerId, !isRanked(playerId));
     }
 
-    private void loadRankedPreferences() {
-        rankedFile = new File(plugin.getDataFolder(), "ranked_preferences.yml");
-        if (rankedFile.exists()) {
-            rankedConfig = YamlConfiguration.loadConfiguration(rankedFile);
-            ConfigurationSection section = rankedConfig.getConfigurationSection("players");
-            if (section != null) {
-                for (String key : section.getKeys(false)) {
-                    try {
-                        rankedPreference.put(UUID.fromString(key), section.getBoolean(key));
-                    } catch (IllegalArgumentException ignored) {
-                    }
-                }
-            }
-        } else {
-            rankedConfig = new YamlConfiguration();
-        }
-    }
-
-    private void saveRankedAsync() {
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, this::saveRankedSync);
-    }
-
-    public void saveRankedSync() {
-        if (rankedConfig == null || rankedFile == null)
-            return;
-        for (Map.Entry<UUID, Boolean> entry : rankedPreference.entrySet()) {
-            rankedConfig.set("players." + entry.getKey().toString(), entry.getValue());
-        }
-        try {
-            rankedConfig.save(rankedFile);
-        } catch (IOException e) {
-            plugin.getLogger().severe("Failed to save ranked preferences: " + e.getMessage());
-        }
-    }
+    public void saveRankedSync() { /* writes are synchronous on mutation */ }
 
     public record DuelRequest(UUID senderId, UUID targetId, String modeId, int bestOf, boolean ranked) {
     }
