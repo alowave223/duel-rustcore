@@ -16,8 +16,20 @@ public final class DaoSupport {
     public interface StmtBinder     { void bind(PreparedStatement ps) throws SQLException; }
 
     private final DataSource ds;
+    private final boolean mysql;
 
-    public DaoSupport(DataSource ds) { this.ds = ds; }
+    public DaoSupport(DataSource ds) {
+        this.ds = ds;
+        this.mysql = computeIsMySql(ds);
+    }
+
+    private static boolean computeIsMySql(DataSource ds) {
+        try (Connection c = ds.getConnection()) {
+            return c.getMetaData().getURL().startsWith("jdbc:mysql");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public <T> T withConnection(SqlFunction<T> fn) {
         try (Connection c = ds.getConnection()) { return fn.apply(c); }
@@ -72,7 +84,5 @@ public final class DaoSupport {
     }
 
     /** True when the JDBC URL of the pool is a MySQL URL. H2 callers should use portable MERGE. */
-    public boolean isMySql() {
-        return withConnection(c -> c.getMetaData().getURL().startsWith("jdbc:mysql"));
-    }
+    public boolean isMySql() { return mysql; }
 }
