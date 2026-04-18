@@ -1,103 +1,85 @@
 package net.rustcore.duel.friend;
 
 import net.rustcore.duel.DuelsPlugin;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
+import net.rustcore.duel.db.dao.FriendsDao;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class FriendManager {
 
-    private static final long REQUEST_TTL_MS = 60_000;
+    private static final long REQUEST_TTL_MS = 60_000L;
 
     private final DuelsPlugin plugin;
+    private final FriendsDao dao;
     private final Map<UUID, Set<UUID>> friends = new ConcurrentHashMap<>();
+    private final Set<UUID> hydrated = ConcurrentHashMap.newKeySet();
     private final Map<UUID, FriendRequest> pendingByTarget = new ConcurrentHashMap<>();
-    private final File file;
 
-    public FriendManager(DuelsPlugin plugin) {
+    public FriendManager(DuelsPlugin plugin, FriendsDao dao) {
         this.plugin = plugin;
-        this.file = new File(plugin.getDataFolder(), "data/friends.yml");
+        this.dao = dao;
     }
 
-    public void load() {
-        friends.clear();
-        if (!file.exists()) return;
-        YamlConfiguration yml = YamlConfiguration.loadConfiguration(file);
-        ConfigurationSection section = yml.getConfigurationSection("players");
-        if (section == null) return;
-        for (String key : section.getKeys(false)) {
-            UUID uid;
-            try { uid = UUID.fromString(key); } catch (IllegalArgumentException e) { continue; }
-            Set<UUID> set = ConcurrentHashMap.newKeySet();
-            for (String other : section.getStringList(key + ".friends")) {
-                try { set.add(UUID.fromString(other)); } catch (IllegalArgumentException ignored) {}
-            }
-            friends.put(uid, set);
-        }
+    public static FriendManager forTest(FriendsDao dao) { return new FriendManager(null, dao); }
+
+    public void ensureLoaded(UUID uuid) {
+        if (hydrated.contains(uuid)) return;
+        Set<UUID> set = ConcurrentHashMap.newKeySet();
+        set.addAll(dao.loadFriends(uuid));
+        friends.put(uuid, set);
+        hydrated.add(uuid);
     }
 
-    public void save() {
-        YamlConfiguration yml = new YamlConfiguration();
-        for (Map.Entry<UUID, Set<UUID>> e : friends.entrySet()) {
-            List<String> list = new ArrayList<>();
-            for (UUID f : e.getValue()) list.add(f.toString());
-            yml.set("players." + e.getKey() + ".friends", list);
-        }
-        try {
-            file.getParentFile().mkdirs();
-            yml.save(file);
-        } catch (IOException ex) {
-            plugin.getLogger().warning("Could not save friends.yml: " + ex.getMessage());
-        }
-    }
-
-    public Set<UUID> getFriends(UUID player) {
-        return friends.getOrDefault(player, Set.of());
+    public Set<UUID> getFriends(UUID uuid) {
+        ensureLoaded(uuid);
+        return Collections.unmodifiableSet(friends.get(uuid));
     }
 
     public boolean isFriend(UUID a, UUID b) {
-        return getFriends(a).contains(b);
+        ensureLoaded(a);
+        return friends.get(a).contains(b);
     }
 
     public boolean addFriend(UUID a, UUID b) {
-        if (a.equals(b)) return false;
-        friends.computeIfAbsent(a, k -> ConcurrentHashMap.newKeySet()).add(b);
-        friends.computeIfAbsent(b, k -> ConcurrentHashMap.newKeySet()).add(a);
-        save();
+        ensureLoaded(a); ensureLoaded(b);
+        if (!friends.get(a).add(b)) return false;
+        friends.get(b).add(a);
+        dao.addFriendPair(a, b);
         return true;
     }
 
     public boolean removeFriend(UUID a, UUID b) {
-        boolean changed = false;
-        Set<UUID> sa = friends.get(a);
-        if (sa != null && sa.remove(b)) changed = true;
-        Set<UUID> sb = friends.get(b);
-        if (sb != null && sb.remove(a)) changed = true;
-        if (changed) save();
-        return changed;
-    }
-
-    public boolean sendRequest(UUID from, UUID to) {
-        if (from.equals(to)) return false;
-        if (isFriend(from, to)) return false;
-        pendingByTarget.put(to, new FriendRequest(from, to, System.currentTimeMillis() + REQUEST_TTL_MS));
+        ensureLoaded(a); ensureLoaded(b);
+        if (!friends.get(a).remove(b)) return false;
+        friends.get(b).remove(a);
+        dao.removeFriendPair(a, b);
         return true;
     }
 
-    public FriendRequest consumePending(UUID target) {
-        FriendRequest req = pendingByTarget.remove(target);
-        if (req == null || req.isExpired()) return null;
-        return req;
+    public boolean sendRequest(UUID sender, UUID target) {
+        if (sender.equals(target)) return false;
+        ensureLoaded(sender);
+        if (friends.get(sender).contains(target)) return false;
+        pendingByTarget.put(target, new FriendRequest(sender, target, System.currentTimeMillis() + REQUEST_TTL_MS));
+        return true;
     }
 
     public FriendRequest peekPending(UUID target) {
-        FriendRequest req = pendingByTarget.get(target);
-        if (req == null) return null;
-        if (req.isExpired()) { pendingByTarget.remove(target); return null; }
-        return req;
+        FriendRequest r = pendingByTarget.get(target);
+        if (r != null && r.isExpired()) { pendingByTarget.remove(target); return null; }
+        return r;
     }
+
+    public FriendRequest consumePending(UUID target) {
+        FriendRequest r = peekPending(target);
+        if (r != null) pendingByTarget.remove(target);
+        return r;
+    }
+
+    public void load() { /* lazy hydration */ }
+    public void save() { /* writes synchronous */ }
 }
