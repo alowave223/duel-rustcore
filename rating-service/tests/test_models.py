@@ -25,9 +25,11 @@ def test_rate_request_minimal_1v1():
 def test_collection_size_constraints_are_in_json_schema():
     team_schema = Team.model_json_schema()
     rate_request_schema = RateRequest.model_json_schema()
+    predict_request_schema = PredictRequest.model_json_schema()
 
     assert team_schema["properties"]["players"]["minItems"] == 1
     assert rate_request_schema["properties"]["teams"]["minItems"] == 2
+    assert predict_request_schema["properties"]["teams"]["minItems"] == 2
 
 
 def test_player_rating_defaults_mu_and_sigma():
@@ -41,6 +43,15 @@ def test_rate_request_rejects_single_team():
     with pytest.raises(ValidationError):
         RateRequest(
             mode_id="x",
+            teams=[
+                Team(rank=0, players=[PlayerRating(uuid="a"*36, mu=25.0, sigma=8.333)])
+            ],
+        )
+
+
+def test_predict_request_rejects_single_team():
+    with pytest.raises(ValidationError):
+        PredictRequest(
             teams=[
                 Team(rank=0, players=[PlayerRating(uuid="a"*36, mu=25.0, sigma=8.333)])
             ],

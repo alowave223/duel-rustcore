@@ -39,7 +39,7 @@ class RateResponse(BaseModel):
 
 
 class PredictRequest(BaseModel):
-    teams: list[Team]
+    teams: Annotated[list[Team], Field(min_length=2)]
 
 
 class PredictResponse(BaseModel):
