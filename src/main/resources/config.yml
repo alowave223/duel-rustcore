@@ -309,3 +309,13 @@ database:
   password: "change-me"
   pool-size: 8
   use-ssl: false
+
+# ============================================================
+# Rating backend (Tailnet-only OpenSkill calculator)
+# ============================================================
+rating:
+  enabled: false
+  base-url: "http://100.64.0.1:8088"
+  shared-secret: "change-me-32-chars-random"
+  connect-timeout-ms: 2000
+  request-timeout-ms: 5000
