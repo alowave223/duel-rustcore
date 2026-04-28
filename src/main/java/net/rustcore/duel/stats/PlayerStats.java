@@ -78,6 +78,12 @@ public class PlayerStats {
     public synchronized double getRatingOrdinal() { return ratingOrdinal; }
     public synchronized void setRatingOrdinal(double ratingOrdinal) { this.ratingOrdinal = ratingOrdinal; }
 
+    public synchronized void setRating(double mu, double sigma, double ratingOrdinal) {
+        this.mu = mu;
+        this.sigma = sigma;
+        this.ratingOrdinal = ratingOrdinal;
+    }
+
     public synchronized int getMatchesRated() { return matchesRated; }
     public synchronized void setMatchesRated(int matchesRated) { this.matchesRated = matchesRated; }
 }
