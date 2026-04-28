@@ -5,6 +5,9 @@ package net.rustcore.duel.stats;
  */
 public class PlayerStats {
 
+    public static final double DEFAULT_MU = 25.0;
+    public static final double DEFAULT_SIGMA = DEFAULT_MU / 3.0;
+
     private int wins;
     private int losses;
     private int kills;
@@ -12,6 +15,10 @@ public class PlayerStats {
     private int winStreak;
     private int bestWinStreak;
     private int elo;
+    private double mu = DEFAULT_MU;
+    private double sigma = DEFAULT_SIGMA;
+    private double ratingOrdinal = 0.0;
+    private int matchesRated;
 
     public double getKdr() {
         return deaths == 0 ? kills : (double) kills / deaths;
@@ -34,6 +41,10 @@ public class PlayerStats {
         copy.winStreak = this.winStreak;
         copy.bestWinStreak = this.bestWinStreak;
         copy.elo = this.elo;
+        copy.mu = this.mu;
+        copy.sigma = this.sigma;
+        copy.ratingOrdinal = this.ratingOrdinal;
+        copy.matchesRated = this.matchesRated;
         return copy;
     }
 
@@ -57,4 +68,16 @@ public class PlayerStats {
 
     public synchronized int getElo() { return elo; }
     public synchronized void setElo(int elo) { this.elo = elo; }
+
+    public synchronized double getMu() { return mu; }
+    public synchronized void setMu(double mu) { this.mu = mu; }
+
+    public synchronized double getSigma() { return sigma; }
+    public synchronized void setSigma(double sigma) { this.sigma = sigma; }
+
+    public synchronized double getRatingOrdinal() { return ratingOrdinal; }
+    public synchronized void setRatingOrdinal(double ratingOrdinal) { this.ratingOrdinal = ratingOrdinal; }
+
+    public synchronized int getMatchesRated() { return matchesRated; }
+    public synchronized void setMatchesRated(int matchesRated) { this.matchesRated = matchesRated; }
 }
