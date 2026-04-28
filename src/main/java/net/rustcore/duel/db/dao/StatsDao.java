@@ -12,17 +12,19 @@ import java.util.UUID;
 public final class StatsDao {
 
     private static final String SQL_UPSERT_MYSQL =
-            "INSERT INTO duels_stats (mode_id, player_uuid, wins, losses, kills, deaths, win_streak, best_win_streak, elo)" +
-            " VALUES (?,?,?,?,?,?,?,?,?)" +
+            "INSERT INTO duels_stats (mode_id, player_uuid, wins, losses, kills, deaths, win_streak, best_win_streak, elo, mu, sigma, rating_ordinal, matches_rated)" +
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)" +
             " ON DUPLICATE KEY UPDATE wins=VALUES(wins), losses=VALUES(losses), kills=VALUES(kills)," +
-            " deaths=VALUES(deaths), win_streak=VALUES(win_streak), best_win_streak=VALUES(best_win_streak), elo=VALUES(elo)";
+            " deaths=VALUES(deaths), win_streak=VALUES(win_streak), best_win_streak=VALUES(best_win_streak)," +
+            " elo=VALUES(elo), mu=VALUES(mu), sigma=VALUES(sigma), rating_ordinal=VALUES(rating_ordinal)," +
+            " matches_rated=VALUES(matches_rated)";
 
     private static final String SQL_UPSERT_H2 =
-            "MERGE INTO duels_stats (mode_id, player_uuid, wins, losses, kills, deaths, win_streak, best_win_streak, elo)" +
-            " KEY (mode_id, player_uuid) VALUES (?,?,?,?,?,?,?,?,?)";
+            "MERGE INTO duels_stats (mode_id, player_uuid, wins, losses, kills, deaths, win_streak, best_win_streak, elo, mu, sigma, rating_ordinal, matches_rated)" +
+            " KEY (mode_id, player_uuid) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     private static final String SQL_LOAD_ALL =
-            "SELECT player_uuid, wins, losses, kills, deaths, win_streak, best_win_streak, elo FROM duels_stats WHERE mode_id=?";
+            "SELECT player_uuid, wins, losses, kills, deaths, win_streak, best_win_streak, elo, mu, sigma, rating_ordinal, matches_rated FROM duels_stats WHERE mode_id=?";
 
     private final DaoSupport s;
     private final String upsertSql;
@@ -62,6 +64,10 @@ public final class StatsDao {
             p.setWinStreak(rs.getInt(6));
             p.setBestWinStreak(rs.getInt(7));
             p.setElo(rs.getInt(8));
+            p.setMu(rs.getDouble("mu"));
+            p.setSigma(rs.getDouble("sigma"));
+            p.setRatingOrdinal(rs.getDouble("rating_ordinal"));
+            p.setMatchesRated(rs.getInt("matches_rated"));
             out.put(u, p);
             return null;
         });
@@ -78,5 +84,9 @@ public final class StatsDao {
         ps.setInt(7, p.getWinStreak());
         ps.setInt(8, p.getBestWinStreak());
         ps.setInt(9, p.getElo());
+        ps.setDouble(10, p.getMu());
+        ps.setDouble(11, p.getSigma());
+        ps.setDouble(12, p.getRatingOrdinal());
+        ps.setInt(13, p.getMatchesRated());
     }
 }
