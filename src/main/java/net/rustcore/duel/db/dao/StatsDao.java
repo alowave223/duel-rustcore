@@ -64,10 +64,10 @@ public final class StatsDao {
             p.setWinStreak(rs.getInt(6));
             p.setBestWinStreak(rs.getInt(7));
             p.setElo(rs.getInt(8));
-            p.setMu(rs.getDouble("mu"));
-            p.setSigma(rs.getDouble("sigma"));
-            p.setRatingOrdinal(rs.getDouble("rating_ordinal"));
-            p.setMatchesRated(rs.getInt("matches_rated"));
+            p.setMu(rs.getDouble(9));
+            p.setSigma(rs.getDouble(10));
+            p.setRatingOrdinal(rs.getDouble(11));
+            p.setMatchesRated(rs.getInt(12));
             out.put(u, p);
             return null;
         });
