@@ -4,8 +4,12 @@ import javax.sql.DataSource;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.JarURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -14,8 +18,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 public final class Migrations {
 
@@ -75,19 +82,43 @@ public final class Migrations {
         List<Script> out = new ArrayList<>();
         ClassLoader cl = Migrations.class.getClassLoader();
         Enumeration<URL> roots = cl.getResources("db/migrations");
-        // Fallback: iterate known files by convention V001..V099
-        for (int i = 1; i < 100; i++) {
-            String name = String.format("db/migrations/V%03d__init.sql", i);
-            try (InputStream is = cl.getResourceAsStream(name)) {
-                if (is == null) continue;
-                String sql = read(is);
-                Matcher m = NAME.matcher(name.substring(name.lastIndexOf('/') + 1));
-                if (m.matches()) {
-                    out.add(new Script(Integer.parseInt(m.group(1)), m.group(2), sql));
+        while (roots.hasMoreElements()) {
+            URL root = roots.nextElement();
+            if ("file".equals(root.getProtocol())) {
+                Path dir = Paths.get(root.toURI());
+                try (Stream<Path> files = Files.list(dir)) {
+                    files.filter(Files::isRegularFile)
+                            .forEach(path -> addScript(out, cl, "db/migrations/" + path.getFileName()));
+                }
+            } else if ("jar".equals(root.getProtocol())) {
+                JarURLConnection conn = (JarURLConnection) root.openConnection();
+                String dir = conn.getEntryName();
+                try (JarFile jar = conn.getJarFile()) {
+                    Enumeration<JarEntry> entries = jar.entries();
+                    while (entries.hasMoreElements()) {
+                        JarEntry entry = entries.nextElement();
+                        String name = entry.getName();
+                        if (!entry.isDirectory() && name.startsWith(dir + "/")) {
+                            addScript(out, cl, name);
+                        }
+                    }
                 }
             }
         }
         return out;
+    }
+
+    private void addScript(List<Script> out, ClassLoader cl, String resourceName) {
+        String fileName = resourceName.substring(resourceName.lastIndexOf('/') + 1);
+        Matcher m = NAME.matcher(fileName);
+        if (!m.matches()) return;
+
+        try (InputStream is = cl.getResourceAsStream(resourceName)) {
+            if (is == null) return;
+            out.add(new Script(Integer.parseInt(m.group(1)), m.group(2), read(is)));
+        } catch (Exception ex) {
+            throw new IllegalStateException("Failed to load migration " + resourceName, ex);
+        }
     }
 
     private String read(InputStream in) throws Exception {
