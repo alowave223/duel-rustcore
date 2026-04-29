@@ -1,11 +1,15 @@
 package net.rustcore.duel.duel;
 
-import net.rustcore.duel.DuelsPlugin;
-import net.rustcore.duel.arena.ActiveArena;
-import net.rustcore.duel.mode.DuelMode;
-import net.rustcore.duel.util.CC;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.title.Title;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Sound;
@@ -13,10 +17,13 @@ import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
+import net.rustcore.duel.DuelsPlugin;
+import net.rustcore.duel.arena.ActiveArena;
+import net.rustcore.duel.mode.DuelMode;
+import net.rustcore.duel.rating.RatingService;
+import net.rustcore.duel.util.CC;
 
 /**
  * Represents an active duel between players.
@@ -350,6 +357,15 @@ public class Duel {
         }
 
         mode.onDuelEnd(this);
+
+        if (winnerId != null && plugin.getRatingService().isEnabled()) {
+            List<RatingService.TeamOutcome> outcomes = new ArrayList<>();
+            for (UUID pid : playerIds) {
+                int rank = pid.equals(winnerId) ? 0 : 1;
+                outcomes.add(new RatingService.TeamOutcome(rank, List.of(pid)));
+            }
+            plugin.getRatingService().recordMatch(mode.getId(), outcomes);
+        }
 
         // Teleport players to lobby FIRST, then destroy the arena
         Bukkit.getScheduler().runTaskLater(plugin, () -> {

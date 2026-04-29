@@ -34,6 +34,8 @@ import net.rustcore.duel.db.dao.RankedPrefsDao;
 import net.rustcore.duel.db.dao.SettingsDao;
 import net.rustcore.duel.db.dao.StatsDao;
 import net.rustcore.duel.stats.StatsManager;
+import net.rustcore.duel.rating.RatingConfig;
+import net.rustcore.duel.rating.RatingService;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -52,6 +54,7 @@ public class DuelsPlugin extends JavaPlugin {
     private PartyManager partyManager;
     private SettingsManager settingsManager;
     private KitLayoutManager kitLayoutManager;
+    private RatingService ratingService;
 
     @Override
     public void onEnable() {
@@ -86,6 +89,11 @@ public class DuelsPlugin extends JavaPlugin {
 
         duelManager = new DuelManager(this, rankedPrefsDao);
         statsManager = new StatsManager(this, statsDao);
+        RatingConfig ratingCfg = RatingConfig.fromSection(getConfig().getConfigurationSection("rating"));
+        ratingService = new RatingService(this, ratingCfg);
+        if (ratingCfg.enabled()) {
+            getLogger().info("OpenSkill rating backend enabled at " + ratingCfg.baseUrl());
+        }
         lobbyManager = new LobbyManager(this);
         friendManager = new FriendManager(this, friendsDao);
         partyManager = new PartyManager(this);
@@ -235,4 +243,6 @@ public class DuelsPlugin extends JavaPlugin {
     public KitLayoutManager getKitLayoutManager() {
         return kitLayoutManager;
     }
+
+    public RatingService getRatingService() { return ratingService; }
 }
