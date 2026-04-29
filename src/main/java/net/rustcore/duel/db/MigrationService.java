@@ -63,7 +63,7 @@ public final class MigrationService {
                 ps.setDeaths(p.getInt("deaths", 0));
                 ps.setWinStreak(p.getInt("win_streak", 0));
                 ps.setBestWinStreak(p.getInt("best_win_streak", 0));
-                ps.setElo(p.getInt("elo", 1000));
+                ps.setRating(PlayerStats.DEFAULT_MU, PlayerStats.DEFAULT_SIGMA, 0.0);
                 batch.put(u, ps);
             } catch (IllegalArgumentException ignored) {}
         }

@@ -30,14 +30,15 @@ class StatsDaoTest {
         UUID u = UUID.randomUUID();
         PlayerStats s = new PlayerStats();
         s.setWins(3); s.setLosses(2); s.setKills(5); s.setDeaths(1);
-        s.setWinStreak(1); s.setBestWinStreak(4); s.setElo(1100);
+        s.setWinStreak(1); s.setBestWinStreak(4); s.setRating(26.0, 8.0, 2.0);
 
         dao.upsert("nodebuff", u, s);
 
         Map<UUID, PlayerStats> loaded = dao.loadAll("nodebuff");
         PlayerStats got = loaded.get(u);
         assertEquals(3, got.getWins());
-        assertEquals(1100, got.getElo());
+        assertEquals(26.0, got.getMu(), 0.001);
+        assertEquals(8.0, got.getSigma(), 0.001);
         assertEquals(4, got.getBestWinStreak());
     }
 
@@ -45,11 +46,11 @@ class StatsDaoTest {
     void upsertReplaces() {
         StatsDao dao = new StatsDao(db.dataSource());
         UUID u = UUID.randomUUID();
-        PlayerStats s1 = new PlayerStats(); s1.setWins(1); s1.setElo(1000);
+        PlayerStats s1 = new PlayerStats(); s1.setWins(1);
         dao.upsert("m", u, s1);
-        PlayerStats s2 = new PlayerStats(); s2.setWins(7); s2.setElo(1234);
+        PlayerStats s2 = new PlayerStats(); s2.setWins(7); s2.setRating(30.0, 7.5, 5.0);
         dao.upsert("m", u, s2);
         assertEquals(7, dao.loadAll("m").get(u).getWins());
-        assertEquals(1234, dao.loadAll("m").get(u).getElo());
+        assertEquals(30.0, dao.loadAll("m").get(u).getMu(), 0.001);
     }
 }

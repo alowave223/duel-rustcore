@@ -44,7 +44,6 @@ class MigrationServiceTest {
         YamlConfiguration y = new YamlConfiguration();
         y.set("players." + u + ".wins", 5);
         y.set("players." + u + ".losses", 2);
-        y.set("players." + u + ".elo", 1200);
         y.save(f);
 
         MigrationService svc = new MigrationService(
