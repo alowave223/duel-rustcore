@@ -36,7 +36,6 @@ import net.rustcore.duel.db.dao.StatsDao;
 import net.rustcore.duel.stats.StatsManager;
 import net.rustcore.duel.rating.RatingConfig;
 import net.rustcore.duel.rating.RatingService;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -172,16 +171,7 @@ public class DuelsPlugin extends JavaPlugin {
      */
     private void registerModeStats() {
         for (DuelMode mode : modeManager.getAllModes()) {
-            // Load the mode's config to get stats settings
-            File modeConfigFile = new File(getDataFolder(), "modes/" + mode.getId() + ".yml");
-            if (modeConfigFile.exists()) {
-                YamlConfiguration modeConfig = YamlConfiguration.loadConfiguration(modeConfigFile);
-                int startingElo = modeConfig.getInt("stats.starting-elo", 1000);
-                int eloKFactor = modeConfig.getInt("stats.elo-k-factor", 32);
-                statsManager.registerMode(mode.getId(), startingElo, eloKFactor);
-            } else {
-                statsManager.registerMode(mode.getId(), 1000, 32);
-            }
+            statsManager.registerMode(mode.getId());
         }
     }
 

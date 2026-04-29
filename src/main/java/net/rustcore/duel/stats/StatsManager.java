@@ -17,12 +17,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class StatsManager {
 
     private record ModeKey(String modeId, UUID uuid) {}
-    private record ModeEloConfig(int startingElo, int eloKFactor) {}
 
     private final DuelsPlugin plugin;
     private final StatsDao dao;
     private final Map<String, Map<UUID, PlayerStats>> statsCache = new ConcurrentHashMap<>();
-    private final Map<String, ModeEloConfig> eloConfigs = new ConcurrentHashMap<>();
     private final WriteBehindQueue<ModeKey> dirty;
 
     public StatsManager(DuelsPlugin plugin, StatsDao dao) {
@@ -35,25 +33,18 @@ public class StatsManager {
         return new StatsManager(null, dao);
     }
 
-    public void registerMode(String modeId, int startingElo, int eloKFactor) {
-        eloConfigs.put(modeId, new ModeEloConfig(startingElo, eloKFactor));
+    public void registerMode(String modeId) {
         statsCache.put(modeId, new ConcurrentHashMap<>(dao.loadAll(modeId)));
     }
 
     public PlayerStats getStats(String modeId, UUID playerId) {
-        ModeEloConfig eloConfig = eloConfigs.getOrDefault(modeId, new ModeEloConfig(1000, 32));
         Map<UUID, PlayerStats> modeStats = statsCache.computeIfAbsent(modeId, k -> new ConcurrentHashMap<>());
-        return modeStats.computeIfAbsent(playerId, k -> {
-            PlayerStats stats = new PlayerStats();
-            stats.setElo(eloConfig.startingElo());
-            return stats;
-        });
+        return modeStats.computeIfAbsent(playerId, k -> new PlayerStats());
     }
 
     public void recordResult(String modeId, UUID winnerId, UUID loserId) {
         PlayerStats winnerStats = getStats(modeId, winnerId);
         PlayerStats loserStats = loserId != null ? getStats(modeId, loserId) : null;
-        ModeEloConfig eloConfig = eloConfigs.getOrDefault(modeId, new ModeEloConfig(1000, 32));
 
         synchronized (winnerStats) {
             winnerStats.setWins(winnerStats.getWins() + 1);
@@ -65,11 +56,6 @@ public class StatsManager {
                 synchronized (loserStats) {
                     loserStats.setLosses(loserStats.getLosses() + 1);
                     loserStats.setWinStreak(0);
-                    double expectedWin = 1.0 / (1.0 + Math.pow(10, (loserStats.getElo() - winnerStats.getElo()) / 400.0));
-                    int winnerEloChange = (int) Math.round(eloConfig.eloKFactor() * (1.0 - expectedWin));
-                    int loserEloChange  = (int) Math.round(eloConfig.eloKFactor() * (0.0 - (1.0 - expectedWin)));
-                    winnerStats.setElo(Math.max(0, winnerStats.getElo() + winnerEloChange));
-                    loserStats.setElo(Math.max(0, loserStats.getElo() + loserEloChange));
                     dirty.markDirty(new ModeKey(modeId, loserId));
                 }
             }
@@ -95,10 +81,10 @@ public class StatsManager {
         List<Map.Entry<UUID, PlayerStats>> entries = new ArrayList<>(modeStats.entrySet());
         Comparator<Map.Entry<UUID, PlayerStats>> comparator = switch (stat.toLowerCase()) {
             case "wins" -> Comparator.comparingInt(e -> -e.getValue().getWins());
-            case "elo" -> Comparator.comparingInt(e -> -e.getValue().getElo());
+            case "rating_ordinal", "elo" -> Comparator.comparingDouble(e -> -e.getValue().getRatingOrdinal());
             case "kills" -> Comparator.comparingInt(e -> -e.getValue().getKills());
             case "win_streak", "best_win_streak" -> Comparator.comparingInt(e -> -e.getValue().getBestWinStreak());
-            default -> Comparator.comparingInt(e -> -e.getValue().getElo());
+            default -> Comparator.comparingDouble(e -> -e.getValue().getRatingOrdinal());
         };
         entries.sort(comparator);
         return entries.subList(0, Math.min(limit, entries.size()));

@@ -159,7 +159,7 @@ public class DuelsExpansion extends PlaceholderExpansion {
         PlayerStats stats = plugin.getStatsManager().getStats(modeId, player.getUniqueId());
 
         return switch (stat) {
-            case "elo" -> String.valueOf(stats.getElo());
+            case "elo", "rating" -> String.format("%.1f", stats.getRatingOrdinal());
             case "wins" -> String.valueOf(stats.getWins());
             case "losses" -> String.valueOf(stats.getLosses());
             case "kills" -> String.valueOf(stats.getKills());
@@ -338,7 +338,7 @@ public class DuelsExpansion extends PlaceholderExpansion {
 
         return switch (fieldToken) {
             case "name" -> entry.name();
-            case "value" -> String.valueOf(entry.value());
+            case "value" -> String.format("%.1f", entry.value());
             default -> EMPTY;
         };
     }
@@ -360,7 +360,7 @@ public class DuelsExpansion extends PlaceholderExpansion {
             List<LeaderboardEntry> snapshot = new ArrayList<>(raw.size());
             for (Map.Entry<UUID, PlayerStats> e : raw) {
                 String name = resolvePlayerName(e.getKey());
-                int value = statValue(e.getValue(), stat);
+                double value = statValue(e.getValue(), stat);
                 snapshot.add(new LeaderboardEntry(e.getKey(), name, value));
             }
 
@@ -380,13 +380,13 @@ public class DuelsExpansion extends PlaceholderExpansion {
         return op.getName() != null ? op.getName() : uuid.toString().substring(0, 8);
     }
 
-    private int statValue(PlayerStats stats, String stat) {
+    private double statValue(PlayerStats stats, String stat) {
         return switch (stat.toLowerCase()) {
-            case "elo" -> stats.getElo();
+            case "elo", "rating" -> stats.getRatingOrdinal();
             case "wins" -> stats.getWins();
             case "kills" -> stats.getKills();
             case "winstreak" -> stats.getBestWinStreak();
-            default -> stats.getElo();
+            default -> stats.getRatingOrdinal();
         };
     }
 
@@ -394,6 +394,6 @@ public class DuelsExpansion extends PlaceholderExpansion {
     // Internal record
     // -------------------------------------------------------------------------
 
-    private record LeaderboardEntry(UUID uuid, String name, int value) {
+    private record LeaderboardEntry(UUID uuid, String name, double value) {
     }
 }

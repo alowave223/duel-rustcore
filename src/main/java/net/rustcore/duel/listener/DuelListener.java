@@ -1,14 +1,5 @@
 package net.rustcore.duel.listener;
 
-import net.rustcore.duel.DuelsPlugin;
-import net.rustcore.duel.arena.CustomPoly2D;
-import net.rustcore.duel.duel.Duel;
-import net.rustcore.duel.duel.DuelState;
-import net.rustcore.duel.kit.KitMenu;
-import net.rustcore.duel.mode.DuelMode;
-import net.rustcore.duel.mode.impl.KitBuilderMode;
-import net.rustcore.duel.modification.Modification;
-
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -18,14 +9,31 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.*;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityRegainHealthEvent;
+import org.bukkit.event.entity.EntityResurrectEvent;
+import org.bukkit.event.entity.EntityToggleGlideEvent;
+import org.bukkit.event.entity.FoodLevelChangeEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.util.Vector;
+
+import net.rustcore.duel.DuelsPlugin;
+import net.rustcore.duel.arena.CustomPoly2D;
+import net.rustcore.duel.duel.Duel;
+import net.rustcore.duel.duel.DuelState;
+import net.rustcore.duel.kit.KitMenu;
+import net.rustcore.duel.mode.DuelMode;
+import net.rustcore.duel.mode.impl.KitBuilderMode;
+import net.rustcore.duel.modification.Modification;
 
 
 /**
@@ -81,13 +89,13 @@ public class DuelListener implements Listener {
 
         // Record kill/death stats
         Player killer = dead.getKiller();
-        if (killer != null) {
+        if (killer != null && !killer.getUniqueId().equals(dead.getUniqueId())) {
             plugin.getStatsManager().recordKill(duel.getMode().getId(), killer.getUniqueId());
         }
         plugin.getStatsManager().recordDeath(duel.getMode().getId(), dead.getUniqueId());
 
         // Notify duel of death
-        duel.handleDeath(dead, killer);
+        duel.handleDeath(dead, killer != null && !killer.getUniqueId().equals(dead.getUniqueId()) ? killer : null);
     }
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -364,10 +372,20 @@ public class DuelListener implements Listener {
                     event.setTo(event.getFrom());
                 }
             }
-            return;
-        } else if (event.hasChangedPosition() && event.getTo() != null) {
+        } else if (event.hasChangedPosition()) {
             event.setTo(event.getFrom());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onBucketEmpty(PlayerBucketEmptyEvent event) {
+        Player player = event.getPlayer();
+        Duel duel = plugin.getDuelManager().getDuel(player.getUniqueId());
+        if (duel == null)
             return;
+
+        if (duel.getState() != DuelState.ACTIVE) {
+            event.setCancelled(true);
         }
     }
 

@@ -318,8 +318,4 @@ stats:
     - deaths
     - win_streak
     - best_win_streak
-    - elo
-  # Starting ELO for new players
-  starting-elo: 1000
-  # ELO K-factor
-  elo-k-factor: 32
+    - rating_ordinal

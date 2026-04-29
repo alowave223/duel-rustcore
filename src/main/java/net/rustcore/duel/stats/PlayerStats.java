@@ -14,7 +14,6 @@ public class PlayerStats {
     private int deaths;
     private int winStreak;
     private int bestWinStreak;
-    private int elo;
     private double mu = DEFAULT_MU;
     private double sigma = DEFAULT_SIGMA;
     private double ratingOrdinal = 0.0;
@@ -40,7 +39,6 @@ public class PlayerStats {
         copy.deaths = this.deaths;
         copy.winStreak = this.winStreak;
         copy.bestWinStreak = this.bestWinStreak;
-        copy.elo = this.elo;
         copy.mu = this.mu;
         copy.sigma = this.sigma;
         copy.ratingOrdinal = this.ratingOrdinal;
@@ -65,9 +63,6 @@ public class PlayerStats {
 
     public synchronized int getBestWinStreak() { return bestWinStreak; }
     public synchronized void setBestWinStreak(int bestWinStreak) { this.bestWinStreak = bestWinStreak; }
-
-    public synchronized int getElo() { return elo; }
-    public synchronized void setElo(int elo) { this.elo = elo; }
 
     public synchronized double getMu() { return mu; }
     public synchronized void setMu(double mu) { this.mu = mu; }

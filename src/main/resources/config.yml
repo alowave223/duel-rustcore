@@ -231,7 +231,7 @@ messages:
   # Stats format
   stats-header: "<gray>==============================="
   stats-title: "<gold><bold><player>'s Stats <gray>(<mode>)"
-  stats-elo: "<yellow>ELO: <white><elo>"
+  stats-rating: "<yellow>Rating: <white><rating>"
   stats-wl: "<green>Wins: <white><wins> <gray>| <red>Losses: <white><losses> <gray>| <yellow>Win Rate: <white><winrate>"
   stats-kd: "<aqua>Kills: <white><kills> <gray>| <red>Deaths: <white><deaths> <gray>| <yellow>K/D: <white><kdr>"
   stats-streak: "<gold>Win Streak: <white><streak> <gray>| <gold>Best: <white><best>"

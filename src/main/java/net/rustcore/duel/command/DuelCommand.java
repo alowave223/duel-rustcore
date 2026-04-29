@@ -369,8 +369,8 @@ public class DuelCommand implements TabExecutor {
         player.sendMessage(CC.parse(plugin.getMessage("stats-title"),
                 "{player}", name, "{mode}", modeId));
         player.sendMessage(CC.parse(plugin.getMessage("stats-header")));
-        player.sendMessage(CC.parse(plugin.getMessage("stats-elo"),
-                "{elo}", String.valueOf(stats.getElo())));
+        player.sendMessage(CC.parse(plugin.getMessage("stats-rating"),
+                "{rating}", String.format("%.1f", stats.getRatingOrdinal())));
         player.sendMessage(CC.parse(plugin.getMessage("stats-wl"),
                 "{wins}", String.valueOf(stats.getWins()),
                 "{losses}", String.valueOf(stats.getLosses()),

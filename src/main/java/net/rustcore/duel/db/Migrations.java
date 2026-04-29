@@ -1,6 +1,5 @@
 package net.rustcore.duel.db;
 
-import javax.sql.DataSource;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -23,6 +22,8 @@ import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+
+import javax.sql.DataSource;
 
 public final class Migrations {
 
