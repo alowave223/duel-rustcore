@@ -108,6 +108,10 @@ public class StatsManager {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, dirty::flushNow);
     }
 
+    public void markDirty(String modeId, UUID uuid) {
+        dirty.markDirty(new ModeKey(modeId, uuid));
+    }
+
     public void flushAll() { dirty.flushNow(); }
 
     public void saveAll() { flushAll(); }
