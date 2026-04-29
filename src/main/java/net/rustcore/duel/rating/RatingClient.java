@@ -9,9 +9,11 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.HexFormat;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Logger;
 
 public final class RatingClient {
 
@@ -20,9 +22,15 @@ public final class RatingClient {
 
     private final RatingConfig cfg;
     private final HttpClient http;
+    private final Logger logger;
 
     public RatingClient(RatingConfig cfg) {
+        this(cfg, null);
+    }
+
+    public RatingClient(RatingConfig cfg, Logger logger) {
         this.cfg = cfg;
+        this.logger = logger;
         // connectTimeout = TCP handshake; per-request timeout set on HttpRequest covers full round-trip.
         this.http = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofMillis(cfg.connectTimeoutMs()))
@@ -55,6 +63,14 @@ public final class RatingClient {
         } catch (Exception e) {
             return CompletableFuture.failedFuture(e);
         }
+        if (logger != null) {
+            logger.info("rating request auth path=" + path
+                    + " timestamp=" + ts
+                    + " secret_len=" + (cfg.sharedSecret() == null ? 0 : cfg.sharedSecret().length())
+                    + " secret_fp=" + cfg.sharedSecretFingerprint()
+                    + " body_sha256=" + sha256Prefix(payload)
+                    + " signature_prefix=" + sig.substring(0, 12));
+        }
 
         HttpRequest req = HttpRequest.newBuilder(URI.create(cfg.baseUrl() + path))
                 .timeout(Duration.ofMillis(cfg.requestTimeoutMs()))
@@ -85,5 +101,14 @@ public final class RatingClient {
         mac.update((byte) '.');
         mac.update(body);
         return HexFormat.of().formatHex(mac.doFinal());
+    }
+
+    private static String sha256Prefix(byte[] body) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(body);
+            return HexFormat.of().formatHex(digest).substring(0, 12);
+        } catch (Exception e) {
+            return "<unavailable>";
+        }
     }
 }

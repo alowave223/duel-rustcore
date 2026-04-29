@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from rating_service.auth import HmacError, sign, verify
+from rating_service.auth import HmacError, secret_fingerprint, sign, verify
 
 
 SECRET = "x" * 32
@@ -24,6 +24,13 @@ def test_sign_matches_known_vector():
     expected = hmac.new(SECRET.encode("utf-8"), msg, hashlib.sha256).hexdigest()
 
     assert sign(SECRET, ts, body) == expected
+
+
+def test_secret_fingerprint_is_stable_and_does_not_expose_secret():
+    fingerprint = secret_fingerprint(SECRET)
+
+    assert fingerprint == hashlib.sha256(SECRET.encode("utf-8")).hexdigest()[:12]
+    assert SECRET not in fingerprint
 
 
 def test_verify_rejects_wrong_signature():

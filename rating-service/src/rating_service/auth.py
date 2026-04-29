@@ -13,6 +13,12 @@ def sign(secret: str, timestamp: str, body: bytes) -> str:
     return hmac.new(secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
 
 
+def secret_fingerprint(secret: str) -> str:
+    if not secret:
+        return "<empty>"
+    return hashlib.sha256(secret.encode("utf-8")).hexdigest()[:12]
+
+
 def verify(secret: str, timestamp: str, signature: str, body: bytes, max_skew: int) -> None:
     try:
         ts_int = int(timestamp)

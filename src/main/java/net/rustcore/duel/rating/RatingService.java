@@ -21,7 +21,7 @@ public final class RatingService {
     public RatingService(DuelsPlugin plugin, RatingConfig cfg) {
         this.plugin = plugin;
         this.cfg = cfg;
-        this.client = new RatingClient(cfg);
+        this.client = new RatingClient(cfg, plugin.getLogger());
     }
 
     public boolean isEnabled() { return cfg.enabled(); }

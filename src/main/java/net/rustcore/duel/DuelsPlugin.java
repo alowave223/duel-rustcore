@@ -91,7 +91,9 @@ public class DuelsPlugin extends JavaPlugin {
         RatingConfig ratingCfg = RatingConfig.fromSection(getConfig().getConfigurationSection("rating"));
         ratingService = new RatingService(this, ratingCfg);
         if (ratingCfg.enabled()) {
-            getLogger().info("OpenSkill rating backend enabled at " + ratingCfg.baseUrl());
+            getLogger().info("OpenSkill rating backend enabled at " + ratingCfg.baseUrl()
+                    + " (secret_len=" + (ratingCfg.sharedSecret() == null ? 0 : ratingCfg.sharedSecret().length())
+                    + ", secret_fp=" + ratingCfg.sharedSecretFingerprint() + ")");
         }
         lobbyManager = new LobbyManager(this);
         friendManager = new FriendManager(this, friendsDao);
