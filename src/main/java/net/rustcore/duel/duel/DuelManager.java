@@ -46,9 +46,8 @@ public class DuelManager {
             return;
         }
 
-        // Build queue key with ranked/unranked suffix for pool separation
         boolean ranked = isRanked(player.getUniqueId());
-        String queueKey = modeId + (ranked ? ":ranked" : ":unranked");
+        String queueKey = queueKey(modeId, ranked);
 
         DuelQueue.QueueMatch match = queue.addPlayer(player.getUniqueId(), queueKey, bestOf);
 
@@ -58,7 +57,8 @@ public class DuelManager {
             Player player2 = Bukkit.getPlayer(match.player2());
 
             if (player1 != null && player2 != null) {
-                createDuel(modeId, List.of(player1, player2), match.bestOf());
+                createDuel(modeIdFromQueueKey(match.modeId()), List.of(player1, player2), match.bestOf(),
+                        isRankedQueueKey(match.modeId()));
             }
         } else {
             DuelMode mode = plugin.getModeManager().getMode(modeId);
@@ -189,7 +189,7 @@ public class DuelManager {
         target.sendMessage(CC.parse(plugin.getMessage("prefix"))
                 .append(CC.parse(plugin.getMessage("duel-accepted"))));
 
-        createDuel(request.modeId(), List.of(sender, target), request.bestOf(), !request.ranked());
+        createDuel(request.modeId(), List.of(sender, target), request.bestOf(), request.ranked());
     }
 
     /**
@@ -216,9 +216,9 @@ public class DuelManager {
     }
 
     /**
-     * Create and start a new duel, optionally forcing unranked (no ELO) outcome.
+     * Create and start a new duel, optionally marking it as ranked for stats and rating updates.
      */
-    public void createDuel(String modeId, List<Player> players, int bestOf, boolean forcedUnranked) {
+    public void createDuel(String modeId, List<Player> players, int bestOf, boolean rankedMatch) {
         DuelMode mode = plugin.getModeManager().getMode(modeId);
         if (mode == null) {
             for (Player p : players) {
@@ -252,9 +252,7 @@ public class DuelManager {
             // Back on the main thread (allocateArena completes on the main thread).
             // duel.getId() == duelId == activeArena.getDuelId()
             Duel duel = new Duel(plugin, mode, activeArena, playerIds, bestOf);
-            if (forcedUnranked) {
-                duel.setMeta("forced-unranked", true);
-            }
+            duel.setMeta(Duel.META_RANKED_MATCH, rankedMatch);
             activeDuels.put(duelId, duel);
             // Arena is ready — remove allocating guard before starting the round
             for (UUID pid : playerIds) {
@@ -312,6 +310,25 @@ public class DuelManager {
 
     public Collection<Duel> getActiveDuels() {
         return activeDuels.values();
+    }
+
+    static String queueKey(String modeId, boolean ranked) {
+        return modeId + (ranked ? ":ranked" : ":unranked");
+    }
+
+    static boolean isRankedQueueKey(String queueKey) {
+        return queueKey != null && queueKey.endsWith(":ranked");
+    }
+
+    static String modeIdFromQueueKey(String queueKey) {
+        if (queueKey == null) return null;
+        if (queueKey.endsWith(":ranked")) {
+            return queueKey.substring(0, queueKey.length() - ":ranked".length());
+        }
+        if (queueKey.endsWith(":unranked")) {
+            return queueKey.substring(0, queueKey.length() - ":unranked".length());
+        }
+        return queueKey;
     }
 
     /**

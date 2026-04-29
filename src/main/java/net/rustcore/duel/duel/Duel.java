@@ -31,6 +31,8 @@ import net.rustcore.duel.util.CC;
  */
 public class Duel {
 
+    public static final String META_RANKED_MATCH = "ranked-match";
+
     private final UUID id;
     private final DuelsPlugin plugin;
     private final DuelMode mode;
@@ -118,6 +120,10 @@ public class Duel {
 
     public void removeMeta(String key) {
         metadata.remove(key);
+    }
+
+    public boolean isRankedMatch() {
+        return Boolean.TRUE.equals(getMeta(META_RANKED_MATCH));
     }
 
     public boolean isParticipant(UUID playerId) {
@@ -345,10 +351,7 @@ public class Duel {
                     "{wins}", String.valueOf(wins),
                     "{losses}", String.valueOf(losses)));
 
-            Object forcedUnranked = getMeta("forced-unranked");
-            boolean isRanked = !(forcedUnranked instanceof Boolean b && b)
-                    && plugin.getDuelManager().isRanked(winnerId)
-                    && plugin.getDuelManager().isRanked(loserId);
+            boolean isRanked = isRankedMatch();
 
             if (isRanked)
                 plugin.getStatsManager().recordResult(mode.getId(), winnerId, loserId);
@@ -360,7 +363,7 @@ public class Duel {
 
         RatingService ratingService = plugin.getRatingService();
         // Rating updates only for decisive results; draws (winnerId==null) and unranked duels are excluded.
-        if (winnerId != null && ratingService != null && ratingService.isEnabled()) {
+        if (winnerId != null && isRankedMatch() && ratingService != null && ratingService.isEnabled()) {
             List<RatingService.TeamOutcome> outcomes = new ArrayList<>();
             for (UUID pid : playerIds) {
                 int rank = pid.equals(winnerId) ? 0 : 1;
@@ -444,10 +447,7 @@ public class Duel {
         if (winnerId != null && disconnectedPlayer != null) {
             Player winner = Bukkit.getPlayer(winnerId);
 
-            Object forcedUnranked = getMeta("forced-unranked");
-            boolean isRanked = !(forcedUnranked instanceof Boolean b && b)
-                    && plugin.getDuelManager().isRanked(winnerId)
-                    && plugin.getDuelManager().isRanked(disconnectedPlayer);
+            boolean isRanked = isRankedMatch();
 
             if (winner != null) {
                 winner.sendMessage(CC.parse(plugin.getMessage("prefix"))
@@ -458,7 +458,7 @@ public class Duel {
 
             RatingService ratingService = plugin.getRatingService();
             // Disconnect counts as a decisive result — rate it the same as a normal finish.
-            if (ratingService != null && ratingService.isEnabled()) {
+            if (isRankedMatch() && ratingService != null && ratingService.isEnabled()) {
                 List<RatingService.TeamOutcome> outcomes = new ArrayList<>();
                 for (UUID pid : playerIds) {
                     int rank = pid.equals(winnerId) ? 0 : 1;

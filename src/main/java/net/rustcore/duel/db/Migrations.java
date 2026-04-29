@@ -75,7 +75,16 @@ public final class Migrations {
         for (String stmt : sql.split(";\\s*\\r?\\n")) {
             String trimmed = stmt.trim();
             if (trimmed.isEmpty()) continue;
-            try (Statement st = c.createStatement()) { st.executeUpdate(trimmed); }
+            try (Statement st = c.createStatement()) { 
+                st.executeUpdate(trimmed); 
+            } catch (java.sql.SQLException e) {
+                // Ignore error 1091: ER_CANT_DROP_FIELD_OR_KEY (Can't DROP '...'; check that column/key exists)
+                if (e.getErrorCode() == 1091) {
+                    System.out.println("[RustCore-Duels] Ignoring expected DB error: " + e.getMessage());
+                    continue;
+                }
+                throw e;
+            }
         }
     }
 

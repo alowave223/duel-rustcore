@@ -27,7 +27,7 @@ class StatsManagerDbTest {
     void recordResultThenFlushPersists() {
         StatsDao dao = new StatsDao(db.dataSource());
         StatsManager sm = StatsManager.forTest(dao);
-        sm.registerMode("nodebuff", 1000, 32);
+        sm.registerMode("nodebuff");
         UUID w = UUID.randomUUID(), l = UUID.randomUUID();
         sm.recordResult("nodebuff", w, l);
         sm.flushAll();
