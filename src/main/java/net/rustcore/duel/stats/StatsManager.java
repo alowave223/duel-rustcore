@@ -108,6 +108,11 @@ public class StatsManager {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, dirty::flushNow);
     }
 
+    public boolean hasStats(String modeId, UUID uuid) {
+        Map<UUID, PlayerStats> modeStats = statsCache.get(modeId);
+        return modeStats != null && modeStats.containsKey(uuid);
+    }
+
     public void markDirty(String modeId, UUID uuid) {
         dirty.markDirty(new ModeKey(modeId, uuid));
     }

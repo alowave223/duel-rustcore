@@ -25,6 +25,7 @@ public final class RatingService {
 
     public boolean isEnabled() { return cfg.enabled(); }
 
+    /** Must be called on the Bukkit main thread. */
     public void recordMatch(String modeId, List<TeamOutcome> outcomes) {
         if (!cfg.enabled()) return;
         StatsManager stats = plugin.getStatsManager();
@@ -43,7 +44,8 @@ public final class RatingService {
 
         client.rate(body).whenComplete((resp, err) -> {
             if (err != null) {
-                plugin.getLogger().warning("rating call failed: " + err.getMessage());
+                Throwable cause = err.getCause() != null ? err.getCause() : err;
+                plugin.getLogger().warning("rating call failed: " + cause);
                 return;
             }
             Bukkit.getScheduler().runTask(plugin, () -> apply(modeId, resp));
@@ -54,6 +56,10 @@ public final class RatingService {
         StatsManager stats = plugin.getStatsManager();
         for (RatingResponse.RatedPlayer p : resp.players()) {
             UUID uuid = UUID.fromString(p.uuid());
+            if (!stats.hasStats(modeId, uuid)) {
+                plugin.getLogger().warning("rating apply skipped for offline player " + uuid + " (stats not in cache)");
+                continue;
+            }
             PlayerStats s = stats.getStats(modeId, uuid);
             s.setRating(p.mu_after(), p.sigma_after(), p.ordinal_after());
             s.setMatchesRated(s.getMatchesRated() + 1);
