@@ -358,13 +358,15 @@ public class Duel {
 
         mode.onDuelEnd(this);
 
-        if (winnerId != null && plugin.getRatingService().isEnabled()) {
+        RatingService ratingService = plugin.getRatingService();
+        // Rating updates only for decisive results; draws (winnerId==null) and unranked duels are excluded.
+        if (winnerId != null && ratingService != null && ratingService.isEnabled()) {
             List<RatingService.TeamOutcome> outcomes = new ArrayList<>();
             for (UUID pid : playerIds) {
                 int rank = pid.equals(winnerId) ? 0 : 1;
                 outcomes.add(new RatingService.TeamOutcome(rank, List.of(pid)));
             }
-            plugin.getRatingService().recordMatch(mode.getId(), outcomes);
+            ratingService.recordMatch(mode.getId(), outcomes);
         }
 
         // Teleport players to lobby FIRST, then destroy the arena

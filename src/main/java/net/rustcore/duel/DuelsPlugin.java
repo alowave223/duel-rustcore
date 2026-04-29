@@ -244,5 +244,7 @@ public class DuelsPlugin extends JavaPlugin {
         return kitLayoutManager;
     }
 
-    public RatingService getRatingService() { return ratingService; }
+    public RatingService getRatingService() {
+        return ratingService != null ? ratingService : new RatingService(this, new RatingConfig(false, "", "", 2000, 5000));
+    }
 }
