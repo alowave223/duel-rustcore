@@ -4,6 +4,8 @@ import java.util.List;
 
 public final class RatingResponse {
 
+    private RatingResponse() { throw new AssertionError("namespace class"); }
+
     public record RatedPlayer(
             String uuid,
             double mu_before,

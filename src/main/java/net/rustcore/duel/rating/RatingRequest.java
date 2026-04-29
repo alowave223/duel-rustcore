@@ -4,6 +4,8 @@ import java.util.List;
 
 public final class RatingRequest {
 
+    private RatingRequest() { throw new AssertionError("namespace class"); }
+
     public record PlayerRating(String uuid, double mu, double sigma) {}
 
     public record Team(int rank, List<PlayerRating> players) {}
