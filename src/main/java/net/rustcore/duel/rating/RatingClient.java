@@ -15,7 +15,8 @@ import java.util.concurrent.CompletableFuture;
 
 public final class RatingClient {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .setPropertyNamingStrategy(com.fasterxml.jackson.databind.PropertyNamingStrategies.SNAKE_CASE);
 
     private final RatingConfig cfg;
     private final HttpClient http;

@@ -455,6 +455,17 @@ public class Duel {
                 if (isRanked)
                     plugin.getStatsManager().recordResult(mode.getId(), winnerId, disconnectedPlayer);
             }
+
+            RatingService ratingService = plugin.getRatingService();
+            // Disconnect counts as a decisive result — rate it the same as a normal finish.
+            if (ratingService != null && ratingService.isEnabled()) {
+                List<RatingService.TeamOutcome> outcomes = new ArrayList<>();
+                for (UUID pid : playerIds) {
+                    int rank = pid.equals(winnerId) ? 0 : 1;
+                    outcomes.add(new RatingService.TeamOutcome(rank, List.of(pid)));
+                }
+                ratingService.recordMatch(mode.getId(), outcomes);
+            }
         }
 
         // Teleport ALL online participants to lobby before destroying arena

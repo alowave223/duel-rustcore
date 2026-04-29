@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -111,6 +112,16 @@ public class StatsManager {
     public boolean hasStats(String modeId, UUID uuid) {
         Map<UUID, PlayerStats> modeStats = statsCache.get(modeId);
         return modeStats != null && modeStats.containsKey(uuid);
+    }
+
+    /**
+     * Single-lookup variant that eliminates the hasStats/getStats race window.
+     * Returns an empty Optional if the player's stats are not in cache.
+     */
+    public Optional<PlayerStats> findStats(String modeId, UUID uuid) {
+        Map<UUID, PlayerStats> modeCache = statsCache.get(modeId);
+        if (modeCache == null) return Optional.empty();
+        return Optional.ofNullable(modeCache.get(uuid));
     }
 
     public void markDirty(String modeId, UUID uuid) {

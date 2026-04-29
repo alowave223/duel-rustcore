@@ -7,6 +7,7 @@ import org.bukkit.Bukkit;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public final class RatingService {
@@ -34,7 +35,7 @@ public final class RatingService {
         for (TeamOutcome t : outcomes) {
             List<RatingRequest.PlayerRating> ps = new ArrayList<>();
             for (UUID u : t.players()) {
-                PlayerStats s = stats.getStats(modeId, u);
+                PlayerStats s = stats.getStats(modeId, u).snapshot();
                 ps.add(new RatingRequest.PlayerRating(u.toString(), s.getMu(), s.getSigma()));
             }
             teams.add(new RatingRequest.Team(t.rank(), ps));
@@ -56,11 +57,12 @@ public final class RatingService {
         StatsManager stats = plugin.getStatsManager();
         for (RatingResponse.RatedPlayer p : resp.players()) {
             UUID uuid = UUID.fromString(p.uuid());
-            if (!stats.hasStats(modeId, uuid)) {
+            Optional<PlayerStats> opt = stats.findStats(modeId, uuid);
+            if (opt.isEmpty()) {
                 plugin.getLogger().warning("rating apply skipped for offline player " + uuid + " (stats not in cache)");
                 continue;
             }
-            PlayerStats s = stats.getStats(modeId, uuid);
+            PlayerStats s = opt.get();
             s.setRating(p.mu_after(), p.sigma_after(), p.ordinal_after());
             s.setMatchesRated(s.getMatchesRated() + 1);
             stats.markDirty(modeId, uuid);
