@@ -22,11 +22,16 @@ public final class RatingClient {
 
     public RatingClient(RatingConfig cfg) {
         this.cfg = cfg;
+        // connectTimeout = TCP handshake; per-request timeout set on HttpRequest covers full round-trip.
         this.http = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofMillis(cfg.connectTimeoutMs()))
                 .build();
     }
 
+    /**
+     * Returns a future that fails with {@link java.util.concurrent.CompletionException} on HTTP or parse error.
+     * Call {@code getCause()} to unwrap the underlying {@link RuntimeException}.
+     */
     public CompletableFuture<RatingResponse.Body> rate(RatingRequest.Body body) {
         if (!cfg.enabled()) {
             return CompletableFuture.failedFuture(new IllegalStateException("rating disabled"));

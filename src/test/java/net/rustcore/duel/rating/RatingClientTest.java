@@ -52,7 +52,24 @@ class RatingClientTest {
         RatingConfig cfg = new RatingConfig(false, "http://nowhere", "", 1000, 1000);
         RatingClient client = new RatingClient(cfg);
         var body = new RatingRequest.Body("k", List.of());
-        var ex = assertThrows(Exception.class, () -> client.rate(body).get());
-        assertNotNull(ex.getMessage() != null ? ex : ex.getCause());
+        var ex = assertThrows(java.util.concurrent.ExecutionException.class, () -> client.rate(body).get());
+        assertInstanceOf(IllegalStateException.class, ex.getCause());
+    }
+
+    @Test
+    void rateThrowsOnInvalidJson() throws Exception {
+        wm.stubFor(post(urlEqualTo("/v1/rate"))
+                .willReturn(ok().withHeader("Content-Type", "application/json").withBody("not-json")));
+
+        RatingConfig cfg = new RatingConfig(true, wm.baseUrl(), "x".repeat(32), 2000, 5000);
+        RatingClient client = new RatingClient(cfg);
+
+        var body = new RatingRequest.Body("k", List.of(
+                new RatingRequest.Team(0, List.of(new RatingRequest.PlayerRating("a".repeat(36), 25.0, 8.33))),
+                new RatingRequest.Team(1, List.of(new RatingRequest.PlayerRating("b".repeat(36), 25.0, 8.33)))
+        ));
+
+        var ex = assertThrows(java.util.concurrent.ExecutionException.class, () -> client.rate(body).get());
+        assertTrue(ex.getCause().getMessage().contains("rating parse failed"));
     }
 }
