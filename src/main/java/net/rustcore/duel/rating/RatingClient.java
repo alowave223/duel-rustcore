@@ -31,8 +31,10 @@ public final class RatingClient {
     public RatingClient(RatingConfig cfg, Logger logger) {
         this.cfg = cfg;
         this.logger = logger;
-        // connectTimeout = TCP handshake; per-request timeout set on HttpRequest covers full round-trip.
+        // Force HTTP/1.1 — uvicorn does not support HTTP/2 upgrades and
+        // discards the request body when the upgrade is rejected.
         this.http = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(Duration.ofMillis(cfg.connectTimeoutMs()))
                 .build();
     }
