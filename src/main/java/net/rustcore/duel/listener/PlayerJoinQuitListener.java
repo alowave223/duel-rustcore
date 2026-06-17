@@ -18,9 +18,7 @@ public final class PlayerJoinQuitListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         UUID uuid = e.getPlayer().getUniqueId();
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            plugin.getFriendManager().ensureLoaded(uuid);
-            plugin.getSettingsManager().getSettings(uuid);
-        });
+        plugin.getFriendManager().ensureLoaded(uuid);
+        plugin.getSettingsManager().getSettings(uuid);
     }
 }

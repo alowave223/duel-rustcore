@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class KitLayoutManager {
 
+    @SuppressWarnings("unused")
     private final DuelsPlugin plugin;
     private final KitLayoutsDao dao;
     private final Map<UUID, Map<String, KitLayout>> layouts = new ConcurrentHashMap<>();

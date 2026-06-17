@@ -361,33 +361,10 @@ public class Duel {
 
         mode.onDuelEnd(this);
 
-        RatingService ratingService = plugin.getRatingService();
-        // Rating updates only for decisive results; draws (winnerId==null) and unranked duels are excluded.
-        if (winnerId != null && isRankedMatch() && ratingService != null && ratingService.isEnabled()) {
-            List<RatingService.TeamOutcome> outcomes = new ArrayList<>();
-            for (UUID pid : playerIds) {
-                int rank = pid.equals(winnerId) ? 0 : 1;
-                outcomes.add(new RatingService.TeamOutcome(rank, List.of(pid)));
-            }
-            ratingService.recordMatch(mode.getId(), outcomes);
-        }
+        recordMatchResult(winnerId);
 
         // Teleport players to lobby FIRST, then destroy the arena
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            for (Player player : getPlayers()) {
-                // Remove active ender pearls to prevent post-duel teleports
-                for (EnderPearl pearl : player.getEnderPearls()) {
-                    pearl.remove();
-                }
-                // Always send to lobby (fixed: previously skipped if pearls existed)
-                plugin.getLobbyManager().sendToHub(player);
-            }
-
-            plugin.getDuelManager().removeDuel(id);
-
-            // Now safe to destroy the arena world (all players are in lobby)
-            plugin.getArenaManager().deallocateArena(activeArena);
-        }, 60L); // 3 seconds after end message
+        Bukkit.getScheduler().runTaskLater(plugin, this::cleanupAndReturnToLobby, 60L);
     }
 
     private void broadcast(Component message) {
@@ -416,6 +393,29 @@ public class Duel {
                 .collect(Collectors.joining(separator));
 
         broadcast(CC.parse(prefix + joinedScores));
+    }
+
+    private void recordMatchResult(UUID winnerId) {
+        RatingService ratingService = plugin.getRatingService();
+        if (winnerId != null && isRankedMatch() && ratingService != null && ratingService.isEnabled()) {
+            List<RatingService.TeamOutcome> outcomes = new ArrayList<>();
+            for (UUID pid : playerIds) {
+                int rank = pid.equals(winnerId) ? 0 : 1;
+                outcomes.add(new RatingService.TeamOutcome(rank, List.of(pid)));
+            }
+            ratingService.recordMatch(mode.getId(), outcomes);
+        }
+    }
+
+    private void cleanupAndReturnToLobby() {
+        for (Player player : getPlayers()) {
+            for (EnderPearl pearl : player.getEnderPearls()) {
+                pearl.remove();
+            }
+            plugin.getLobbyManager().sendToHub(player);
+        }
+        plugin.getDuelManager().removeDuel(id);
+        plugin.getArenaManager().deallocateArena(activeArena);
     }
 
     /**
@@ -456,25 +456,9 @@ public class Duel {
                     plugin.getStatsManager().recordResult(mode.getId(), winnerId, disconnectedPlayer);
             }
 
-            RatingService ratingService = plugin.getRatingService();
-            // Disconnect counts as a decisive result — rate it the same as a normal finish.
-            if (isRankedMatch() && ratingService != null && ratingService.isEnabled()) {
-                List<RatingService.TeamOutcome> outcomes = new ArrayList<>();
-                for (UUID pid : playerIds) {
-                    int rank = pid.equals(winnerId) ? 0 : 1;
-                    outcomes.add(new RatingService.TeamOutcome(rank, List.of(pid)));
-                }
-                ratingService.recordMatch(mode.getId(), outcomes);
-            }
+            recordMatchResult(winnerId);
         }
 
-        // Teleport ALL online participants to lobby before destroying arena
-        for (Player player : getPlayers()) {
-            plugin.getLobbyManager().sendToHub(player);
-        }
-
-        // Then destroy the arena
-        plugin.getDuelManager().removeDuel(id);
-        plugin.getArenaManager().deallocateArena(activeArena);
+        cleanupAndReturnToLobby();
     }
 }

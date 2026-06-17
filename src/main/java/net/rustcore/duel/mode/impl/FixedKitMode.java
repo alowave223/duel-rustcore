@@ -78,7 +78,7 @@ public class FixedKitMode implements DuelMode {
     }
     @Override public int getDefaultBestOf() { return defaultBestOf; }
     @Override public boolean isRedraftEachRound() { return false; }
-    @Override public Modification getModification() { return null; }
+    @Override public Modification getModification() { return Modification.DEFAULTS; }
 
     @Override
     public void onRoundSetup(Duel duel, Player player) {

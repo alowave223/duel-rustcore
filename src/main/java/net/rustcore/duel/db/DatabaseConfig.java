@@ -8,12 +8,16 @@ public record DatabaseConfig(
 ) {
     public static DatabaseConfig fromSection(ConfigurationSection s) {
         if (s == null) throw new IllegalStateException("Missing 'database' section in config.yml");
+        String password = s.getString("password", "");
+        if (password.isBlank()) {
+            throw new IllegalStateException("database.password must not be empty in config.yml");
+        }
         return new DatabaseConfig(
                 s.getString("host", "localhost"),
                 s.getInt("port", 3306),
                 s.getString("name", "duels"),
                 s.getString("user", "root"),
-                s.getString("password", ""),
+                password,
                 s.getInt("pool-size", 8),
                 s.getBoolean("use-ssl", false)
         );

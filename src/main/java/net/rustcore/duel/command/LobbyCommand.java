@@ -23,7 +23,7 @@ public class LobbyCommand implements CommandExecutor {
             sender.sendMessage(CC.parse(plugin.getMessage("only-players")));
             return true;
         }
-        if (!player.hasPermission("duels.lobby")) {
+        if (!player.hasPermission("duels.hub")) {
             player.sendMessage(CC.parse(plugin.getMessage("prefix"))
                     .append(CC.parse(plugin.getMessage("no-permission"))));
             return true;
@@ -34,7 +34,7 @@ public class LobbyCommand implements CommandExecutor {
         }
         plugin.getDuelManager().getQueue().removePlayer(player.getUniqueId());
 
-        String server = plugin.getConfig().getString("lobby.server", "lobby");
+        String server = plugin.getConfig().getString("hub.server", "lobby");
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
         out.writeUTF("Connect");
         out.writeUTF(server);

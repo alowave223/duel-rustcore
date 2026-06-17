@@ -125,8 +125,9 @@ public class DuelsPlugin extends JavaPlugin {
         DuelCommand duelCommand = new DuelCommand(this);
         getCommand("duel").setExecutor(duelCommand);
         getCommand("duel").setTabCompleter(duelCommand);
-        getCommand("hub").setExecutor(new HubCommand(this));
-        getCommand("lobby").setExecutor(new LobbyCommand(this));
+        // `/hub` = BungeeCord transfer to central lobby; `/lobby` = hub spawns on duels server
+        getCommand("hub").setExecutor(new LobbyCommand(this));
+        getCommand("lobby").setExecutor(new HubCommand(this));
         getCommand("f").setExecutor(new FriendCommand(this));
         getCommand("party").setExecutor(new PartyCommand(this));
         getCommand("dsettings").setExecutor(new SettingsCommand(this));

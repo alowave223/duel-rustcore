@@ -3,6 +3,7 @@ package net.rustcore.duel.duel;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Simple FIFO matchmaking queue. One queue per mode.
@@ -12,6 +13,8 @@ public class DuelQueue {
 
     // modeId -> queue of player UUIDs
     private final Map<String, Queue<UUID>> queues = new ConcurrentHashMap<>();
+    // modeId -> accurate count (ConcurrentLinkedQueue.size() is not O(1) and can be inaccurate)
+    private final Map<String, AtomicInteger> queueSizes = new ConcurrentHashMap<>();
     // Player -> modeId they're queued for
     private final Map<UUID, String> playerModes = new ConcurrentHashMap<>();
     // Player -> best-of preference
@@ -40,6 +43,8 @@ public class DuelQueue {
                 playerModes.remove(opponent);
                 playerModes.remove(playerId);
 
+                decrementSize(modeId, 2);
+
                 // Use the higher best-of preference
                 int matchBestOf = Math.max(bestOf, playerBestOf.getOrDefault(opponent, bestOf));
                 playerBestOf.remove(opponent);
@@ -52,6 +57,7 @@ public class DuelQueue {
 
         // No match - add to queue
         queue.add(playerId);
+        queueSizes.computeIfAbsent(modeId, k -> new AtomicInteger()).incrementAndGet();
         return null;
     }
 
@@ -66,9 +72,15 @@ public class DuelQueue {
             if (queue != null) {
                 queue.remove(playerId);
             }
+            decrementSize(modeId, 1);
             return true;
         }
         return false;
+    }
+
+    private void decrementSize(String modeId, int count) {
+        AtomicInteger ai = queueSizes.get(modeId);
+        if (ai != null) ai.addAndGet(-count);
     }
 
     public boolean isQueued(UUID playerId) {
@@ -80,8 +92,8 @@ public class DuelQueue {
     }
 
     public int getQueueSize(String modeId) {
-        Queue<UUID> queue = queues.get(modeId);
-        return queue != null ? queue.size() : 0;
+        AtomicInteger ai = queueSizes.get(modeId);
+        return ai != null ? ai.get() : 0;
     }
 
     public record QueueMatch(UUID player1, UUID player2, String modeId, int bestOf) {

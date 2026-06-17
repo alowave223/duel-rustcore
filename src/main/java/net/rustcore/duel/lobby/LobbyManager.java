@@ -165,9 +165,9 @@ public class LobbyManager {
 
   private void loadHubSpawns() {
     hubSpawns.clear();
-    java.util.List<java.util.Map<?, ?>> raw = plugin.getConfig().getMapList("hubs");
+    java.util.List<java.util.Map<?, ?>> raw = plugin.getConfig().getMapList("lobby-spawns");
     if (raw.isEmpty()) {
-      plugin.getLogger().warning("No 'hubs:' entries in config.yml — /hub has no targets.");
+      plugin.getLogger().warning("No 'lobby-spawns:' entries in config.yml — /lobby has no targets.");
       return;
     }
     for (java.util.Map<?, ?> entry : raw) {
@@ -202,7 +202,7 @@ public class LobbyManager {
     if (index < 0 || index >= hubSpawns.size()) return null;
     Location loc = hubSpawns.get(index);
     if (loc.getWorld() == null) {
-      java.util.List<java.util.Map<?, ?>> raw = plugin.getConfig().getMapList("hubs");
+      java.util.List<java.util.Map<?, ?>> raw = plugin.getConfig().getMapList("lobby-spawns");
       if (index < raw.size()) {
         Object worldObj = raw.get(index).get("world");
         String worldName = worldObj != null ? String.valueOf(worldObj) : "lobby";

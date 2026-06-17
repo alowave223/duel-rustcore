@@ -9,6 +9,7 @@ public class PartyManager {
 
     private static final long INVITE_TTL_MS = 60_000;
 
+    @SuppressWarnings("unused")
     private final DuelsPlugin plugin;
     private final Map<UUID, Party> playerParty = new ConcurrentHashMap<>();
     private final Map<UUID, Invite> pendingInvites = new ConcurrentHashMap<>();

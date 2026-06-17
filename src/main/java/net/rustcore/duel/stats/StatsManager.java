@@ -66,13 +66,17 @@ public class StatsManager {
 
     public void recordKill(String modeId, UUID killerId) {
         PlayerStats stats = getStats(modeId, killerId);
-        stats.setKills(stats.getKills() + 1);
+        synchronized (stats) {
+            stats.setKills(stats.getKills() + 1);
+        }
         dirty.markDirty(new ModeKey(modeId, killerId));
     }
 
     public void recordDeath(String modeId, UUID playerId) {
         PlayerStats stats = getStats(modeId, playerId);
-        stats.setDeaths(stats.getDeaths() + 1);
+        synchronized (stats) {
+            stats.setDeaths(stats.getDeaths() + 1);
+        }
         dirty.markDirty(new ModeKey(modeId, playerId));
     }
 
@@ -92,6 +96,11 @@ public class StatsManager {
 
     private void scheduleFlush() {
         if (plugin == null) return;
+        // flushNow() calls flushBatch() which calls PlayerStats.snapshot() —
+        // snapshot() is synchronized, producing a consistent copy even when
+        // called from an async thread. JDBC writes are also thread-safe.
+        // recordKill and recordDeath synchronize on the PlayerStats instance
+        // to prevent read-modify-write races.
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, dirty::flushNow);
     }
 

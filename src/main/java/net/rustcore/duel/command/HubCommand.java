@@ -21,7 +21,7 @@ public class HubCommand implements CommandExecutor {
             sender.sendMessage(CC.parse(plugin.getMessage("only-players")));
             return true;
         }
-        if (!player.hasPermission("duels.hub")) {
+        if (!player.hasPermission("duels.lobby")) {
             player.sendMessage(CC.parse(plugin.getMessage("prefix"))
                     .append(CC.parse(plugin.getMessage("no-permission"))));
             return true;

@@ -39,6 +39,7 @@ public interface DuelMode {
     boolean isRedraftEachRound();
 
     /** Get modifications for this mode */
+    @org.jetbrains.annotations.NotNull
     Modification getModification();
 
     /**

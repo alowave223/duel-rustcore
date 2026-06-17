@@ -24,7 +24,7 @@ class MigrationsTest {
                  Statement st = c.createStatement();
                  ResultSet rs = st.executeQuery("SELECT MAX(version) FROM schema_version")) {
                 assertTrue(rs.next());
-                assertEquals(5, rs.getInt(1));
+                assertEquals(6, rs.getInt(1));
             }
         } finally {
             db.shutdown();

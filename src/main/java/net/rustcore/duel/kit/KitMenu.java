@@ -15,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Manages the kit drafting menu for KitBuilder mode.
@@ -49,12 +50,15 @@ public class KitMenu {
     private final Map<UUID, Map<Integer, Integer>> playerPicks = new HashMap<>();
 
     // Track which inventories belong to kit menus
-    private final Set<Inventory> activeMenus = Collections.newSetFromMap(new WeakHashMap<>());
+    private final Set<Inventory> activeMenus = ConcurrentHashMap.newKeySet();
 
     private final Map<UUID, Inventory> playerInventories = new HashMap<>();
 
     // Pagination: player -> current page
     private final Map<UUID, Integer> playerPages = new HashMap<>();
+
+    // Per-player debounce to prevent double-click dupes (50ms cooldown)
+    private final Map<UUID, Long> lastClickTimestamps = new ConcurrentHashMap<>();
 
     // Pagination buttons
     private ItemStack prevPageButton;
@@ -317,6 +321,13 @@ public class KitMenu {
         MenuEntry entry = allItems.get(globalIndex).entry();
 
         UUID playerId = player.getUniqueId();
+
+        // Debounce: prevent double-click dupes (minecraft-security.md rule)
+        long now = System.currentTimeMillis();
+        Long last = lastClickTimestamps.getOrDefault(playerId, 0L);
+        if (now - last < 50) return true;
+        lastClickTimestamps.put(playerId, now);
+
         Map<Integer, Integer> picks = playerPicks.computeIfAbsent(playerId, k -> new HashMap<>());
         int currentPicks = picks.getOrDefault(globalIndex, 0);
 
@@ -369,6 +380,7 @@ public class KitMenu {
     public void removePlayer(UUID playerId) {
         playerPicks.remove(playerId);
         playerPages.remove(playerId);
+        lastClickTimestamps.remove(playerId);
     }
 
     public void removeMenu(Inventory inv) {

@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class SettingsManager {
 
+    @SuppressWarnings("unused")
     private final DuelsPlugin plugin;
     private final SettingsDao dao;
     private final Map<UUID, PlayerSettings> cache = new ConcurrentHashMap<>();

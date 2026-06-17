@@ -3,9 +3,7 @@ package net.rustcore.duel.db;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class DatabaseConfigTest {
     @Test
@@ -35,6 +33,7 @@ class DatabaseConfigTest {
     void fromSection_usesDefaults_whenKeysMissing() {
         YamlConfiguration y = new YamlConfiguration();
         y.set("database.host", "only-host");
+        y.set("database.password", "test123");
 
         DatabaseConfig c = DatabaseConfig.fromSection(y.getConfigurationSection("database"));
 
@@ -42,8 +41,22 @@ class DatabaseConfigTest {
         assertEquals(3306, c.port());
         assertEquals("duels", c.database());
         assertEquals("root", c.user());
-        assertEquals("", c.password());
+        assertEquals("test123", c.password());
         assertEquals(8, c.poolSize());
         assertFalse(c.useSsl());
+    }
+
+    @Test
+    void fromSection_rejectsEmptyPassword() {
+        YamlConfiguration y = new YamlConfiguration();
+        y.set("database.password", "");
+
+        try {
+            DatabaseConfig.fromSection(y.getConfigurationSection("database"));
+            fail("should have thrown");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains("password"),
+                    "expected 'password' in error message, got: " + expected.getMessage());
+        }
     }
 }

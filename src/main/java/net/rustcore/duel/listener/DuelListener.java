@@ -402,9 +402,12 @@ public class DuelListener implements Listener {
     }
 
     /**
-     * Block inventory manipulation between states (COUNTDOWN, PREPARING, ROUND_ENDING, ENDED).
-     * During DRAFTING the KitMenuListener handles the kit GUI; we only block
-     * interactions that happen outside of it (e.g. while the menu is momentarily closed).
+     * Inventory is always freely swappable during active duels (ACTIVE, COUNTDOWN,
+     * PREPARING, ROUND_ENDING, ENDED).
+     *
+     * The ONLY state where inventory is locked is DRAFTING — when players are
+     * selecting items from the kit menu GUI. Even then, interactions inside the
+     * kit menu itself are allowed (handled by KitMenuListener).
      */
     @EventHandler(priority = EventPriority.HIGH)
     public void onInventoryClick(InventoryClickEvent event) {
@@ -422,22 +425,16 @@ public class DuelListener implements Listener {
             return;
 
         DuelState state = duel.getState();
-        // Lock inventory between states where players shouldn't be able to move items
-
-        DuelMode mode = duel.getMode();
-        if (mode instanceof KitBuilderMode kitBuilderMode) {
-            if (state == DuelState.COUNTDOWN) {
-                KitMenu kitMenu = kitBuilderMode.getKitMenu();
-                if (!kitMenu.isKitMenu(event.getView().getTopInventory())) {
-                    return;
-                }
-            }
-        } else {
-            if (state == DuelState.COUNTDOWN
-                    || state == DuelState.ROUND_ENDING
-                    || state == DuelState.ENDED) {
-                event.setCancelled(true);
-            }
+        if (state != DuelState.DRAFTING) {
+            // FREE inventory — player can swap, move, drop items during the fight,
+            // countdown, round ending, etc.
+            return;
         }
+
+        // DRAFTING state: lock inventory completely.
+        // KitMenuListener and KitMenu.handleClick() manage kit menu clicks
+        // programmatically — they add items to the player's inventory without
+        // needing the vanilla event to pass through uncancelled.
+        event.setCancelled(true);
     }
 }

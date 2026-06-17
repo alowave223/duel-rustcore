@@ -242,7 +242,17 @@ public class DuelManager {
         // preventing duplicate requests while the async paste is in progress.
         UUID duelId = UUID.randomUUID();
         for (UUID pid : playerIds) {
-            playerDuels.put(pid, duelId);
+            UUID existing = playerDuels.putIfAbsent(pid, duelId);
+            if (existing != null) {
+                plugin.getLogger().warning("Player " + pid + " is already in a duel — skipping");
+                // Clean up any players that were already registered
+                for (UUID cleanup : playerIds) {
+                    if (cleanup.equals(pid)) break;
+                    playerDuels.remove(cleanup);
+                    allocatingPlayers.remove(cleanup);
+                }
+                return;
+            }
             // Mark as allocating so listeners can safely block damage/death
             // until the Duel object is fully constructed and registered.
             allocatingPlayers.add(pid);

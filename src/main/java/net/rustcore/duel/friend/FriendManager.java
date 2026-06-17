@@ -13,6 +13,7 @@ public class FriendManager {
 
     private static final long REQUEST_TTL_MS = 60_000L;
 
+    @SuppressWarnings("unused")
     private final DuelsPlugin plugin;
     private final FriendsDao dao;
     private final Map<UUID, Set<UUID>> friends = new ConcurrentHashMap<>();

@@ -3,6 +3,7 @@ package net.rustcore.duel.kit;
 import net.rustcore.duel.util.ItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Registry;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.plugin.Plugin;
@@ -151,7 +152,8 @@ public final class KitItemParser {
             LOGGER.warning("Unknown material in potion descriptor: " + parts[0]);
             return null;
         }
-        PotionEffectType effectType = PotionEffectType.getByName(parts[1].toUpperCase());
+        PotionEffectType effectType = Registry.POTION_EFFECT_TYPE.get(
+                org.bukkit.NamespacedKey.minecraft(parts[1].toLowerCase()));
         if (effectType == null) {
             LOGGER.warning("Unknown potion effect: " + parts[1]);
             return null;

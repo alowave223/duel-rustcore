@@ -67,9 +67,7 @@ public final class RatingClient {
             logger.info("rating request auth path=" + path
                     + " timestamp=" + ts
                     + " secret_len=" + (cfg.sharedSecret() == null ? 0 : cfg.sharedSecret().length())
-                    + " secret_fp=" + cfg.sharedSecretFingerprint()
-                    + " body_sha256=" + sha256Prefix(payload)
-                    + " signature_prefix=" + sig.substring(0, 12));
+                    + " body_sha256=" + sha256Prefix(payload));
         }
 
         HttpRequest req = HttpRequest.newBuilder(URI.create(cfg.baseUrl() + path))

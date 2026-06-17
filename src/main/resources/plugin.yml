@@ -17,12 +17,12 @@ commands:
     usage: /<command> <subcommand>
     aliases: [ duels ]
   hub:
-    description: Teleport to a hub spawn on this server
-    usage: /<command> [number]
+    description: Return to the network hub server
+    usage: /<command>
     aliases: [ spawn ]
   lobby:
-    description: Return to the network lobby server
-    usage: /<command>
+    description: Teleport to a lobby spawn on this server
+    usage: /<command> [number]
   friend:
     description: Friend system
     usage: /<command> [add|remove|list|accept|decline] [player]
@@ -62,10 +62,10 @@ permissions:
     description: Permission to open the kit draft menu
     default: true
   duels.hub:
-    description: Permission to use /hub
+    description: Permission to use /hub (network hub server)
     default: true
   duels.lobby:
-    description: Permission to use /lobby
+    description: Permission to use /lobby (local lobby spawns)
     default: true
   duels.friends:
     description: Use friend system

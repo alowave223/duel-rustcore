@@ -32,14 +32,13 @@ def build_router(settings: Settings) -> APIRouter:
         return {"status": "ok"}
 
     async def _check_auth(
-        request: Request,
+        body: bytes,
         x_rating_timestamp: str | None,
         x_rating_signature: str | None,
-    ) -> bytes:
+    ) -> None:
         if not x_rating_timestamp or not x_rating_signature:
             raise HTTPException(status_code=401, detail="missing auth headers")
 
-        body = await request.body()
         try:
             verify(
                 settings.shared_secret,
@@ -65,7 +64,6 @@ def build_router(settings: Settings) -> APIRouter:
                 (x_rating_signature or "")[:12],
             )
             raise HTTPException(status_code=401, detail=str(exc)) from exc
-        return body
 
     @router.post("/v1/rate", response_model=RateResponse)
     async def rate(
@@ -73,7 +71,8 @@ def build_router(settings: Settings) -> APIRouter:
         x_rating_timestamp: str | None = Header(default=None),
         x_rating_signature: str | None = Header(default=None),
     ) -> RateResponse:
-        body = await _check_auth(request, x_rating_timestamp, x_rating_signature)
+        body = await request.body()
+        await _check_auth(body, x_rating_timestamp, x_rating_signature)
         req = _parse_request(RateRequest, body)
         return calculate_new_ratings(req)
 
@@ -83,7 +82,8 @@ def build_router(settings: Settings) -> APIRouter:
         x_rating_timestamp: str | None = Header(default=None),
         x_rating_signature: str | None = Header(default=None),
     ) -> PredictResponse:
-        body = await _check_auth(request, x_rating_timestamp, x_rating_signature)
+        body = await request.body()
+        await _check_auth(body, x_rating_timestamp, x_rating_signature)
         req = _parse_request(PredictRequest, body)
         probs, draw = predict_win(req.teams)
         return PredictResponse(win_probabilities=probs, draw_probability=draw)

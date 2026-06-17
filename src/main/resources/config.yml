@@ -2,12 +2,12 @@
 # Duels Plugin - Main Configuration
 # ============================================================
 
-# BungeeCord target server name for /lobby
-lobby:
+# BungeeCord target server name for /hub
+hub:
   server: "lobby"
 
-# Hub spawns on THIS server. /hub <n> teleports to the nth entry (1-based).
-hubs:
+# Lobby spawns on THIS server. /lobby <n> teleports to the nth entry (1-based).
+lobby-spawns:
   - world: "lobby"
     x: 0.5
     y: 64.0

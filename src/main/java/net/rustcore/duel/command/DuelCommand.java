@@ -178,27 +178,13 @@ public class DuelCommand implements TabExecutor {
             return true;
         }
 
-        int bestOf = mode.getDefaultBestOf();
         int bestOfArgIndex = modeArgIndex + 1;
-        if (args.length > bestOfArgIndex) {
-            try {
-                bestOf = Integer.parseInt(args[bestOfArgIndex]);
-                if (bestOf <= 0 || bestOf % 2 == 0) {
-                    sender.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                            .append(CC.parse(plugin.getMessage("bestof-must-be-odd"))));
-                    return true;
-                }
-                if (!mode.getAvailableBestOf().contains(bestOf)) {
-                    sender.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                            .append(CC.parse("<red>Invalid best-of. Available: <options>",
-                                    "options", mode.getAvailableBestOf().toString())));
-                    return true;
-                }
-            } catch (NumberFormatException e) {
-                sender.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                        .append(CC.parse("<red>Invalid number: <input>", "input", args[bestOfArgIndex])));
-                return true;
-            }
+        int bestOf;
+        try {
+            bestOf = validateBestOf(mode, args.length > bestOfArgIndex ? args[bestOfArgIndex] : null);
+        } catch (IllegalArgumentException e) {
+            sender.sendMessage(CC.parse(plugin.getMessage("prefix")).append(CC.parse(e.getMessage())));
+            return true;
         }
 
         plugin.getDuelManager().queuePlayer(target, modeId, bestOf);
@@ -263,31 +249,12 @@ public class DuelCommand implements TabExecutor {
             return true;
         }
 
-        int bestOf = mode.getDefaultBestOf();
-        if (args.length > 3) {
-            try {
-                bestOf = Integer.parseInt(args[3]);
-                if (bestOf <= 0) {
-                    player.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                            .append(CC.parse(plugin.getMessage("bestof-must-be-odd"))));
-                    return true;
-                }
-                if (bestOf % 2 == 0) {
-                    player.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                            .append(CC.parse(plugin.getMessage("bestof-must-be-odd"))));
-                    return true;
-                }
-                if (!mode.getAvailableBestOf().contains(bestOf)) {
-                    player.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                            .append(CC.parse("<red>Invalid best-of. Available: <options>",
-                                    "options", mode.getAvailableBestOf().toString())));
-                    return true;
-                }
-            } catch (NumberFormatException e) {
-                player.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                        .append(CC.parse("<red>Invalid number: <input>", "input", args[3])));
-                return true;
-            }
+        int bestOf;
+        try {
+            bestOf = validateBestOf(mode, args.length > 3 ? args[3] : null);
+        } catch (IllegalArgumentException e) {
+            player.sendMessage(CC.parse(plugin.getMessage("prefix")).append(CC.parse(e.getMessage())));
+            return true;
         }
 
         plugin.getDuelManager().sendRequest(player, target, modeId, bestOf);
@@ -433,31 +400,12 @@ public class DuelCommand implements TabExecutor {
             return true;
         }
 
-        int bestOf = mode.getDefaultBestOf();
-        if (args.length > 4) {
-            try {
-                bestOf = Integer.parseInt(args[4]);
-                if (bestOf <= 0) {
-                    sender.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                            .append(CC.parse(plugin.getMessage("bestof-must-be-odd"))));
-                    return true;
-                }
-                if (bestOf % 2 == 0) {
-                    sender.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                            .append(CC.parse(plugin.getMessage("bestof-must-be-odd"))));
-                    return true;
-                }
-                if (!mode.getAvailableBestOf().contains(bestOf)) {
-                    sender.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                            .append(CC.parse("<red>Invalid best-of. Available: <options>",
-                                    "options", mode.getAvailableBestOf().toString())));
-                    return true;
-                }
-            } catch (NumberFormatException e) {
-                sender.sendMessage(CC.parse(plugin.getMessage("prefix"))
-                        .append(CC.parse("<red>Invalid number: <input>", "input", args[4])));
-                return true;
-            }
+        int bestOf;
+        try {
+            bestOf = validateBestOf(mode, args.length > 4 ? args[4] : null);
+        } catch (IllegalArgumentException e) {
+            sender.sendMessage(CC.parse(plugin.getMessage("prefix")).append(CC.parse(e.getMessage())));
+            return true;
         }
 
         // Remove from queues first to avoid interfering with other matches
@@ -470,6 +418,23 @@ public class DuelCommand implements TabExecutor {
         sender.sendMessage(CC.parse(plugin.getMessage("prefix"))
                 .append(CC.parse("<green>Force started duel between " + p1.getName() + " and " + p2.getName())));
         return true;
+    }
+
+    private int validateBestOf(DuelMode mode, String rawInput) {
+        if (rawInput == null) return mode.getDefaultBestOf();
+        int bestOf;
+        try {
+            bestOf = Integer.parseInt(rawInput);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("<red>Invalid number: <input>");
+        }
+        if (bestOf <= 0 || bestOf % 2 == 0) {
+            throw new IllegalArgumentException(plugin.getMessage("bestof-must-be-odd"));
+        }
+        if (!mode.getAvailableBestOf().contains(bestOf)) {
+            throw new IllegalArgumentException("<red>Invalid best-of. Available: <options>");
+        }
+        return bestOf;
     }
 
     private String defaultModeId() {
